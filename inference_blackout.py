@@ -47,8 +47,8 @@ def run_blackout_experiment():
     noise_scheduler = NoiseScheduler(num_timesteps=100, device=DEVICE)
     env = ObstacleEnv()
 
-    BLACKOUT_X_RANGE = [0, 0]
-    # BLACKOUT_X_RANGE = [35, 65]
+    # BLACKOUT_X_RANGE = [0, 0]
+    BLACKOUT_X_RANGE = [30, 70]
 
     plt.figure(figsize=(10, 8))
     circle = plt.Circle(env.obstacle_center, env.obstacle_radius, color='r', alpha=0.5)
@@ -63,30 +63,47 @@ def run_blackout_experiment():
 
     def run_sim(mode, color, label_prefix):
         __Logger.info(f"Running blackout simulation in {mode} mode...")
-        for _ in range(1):
+        for _ in range(10):
             curr_pos = env.start_pos.copy()
             history = [curr_pos.copy()]
             wm_state = None
             last_action = np.zeros(2)
 
-            for step in range(0, 200, 8):
-                is_blind = BLACKOUT_X_RANGE[0] <= curr_pos[0] <= BLACKOUT_X_RANGE[1]
-                if is_blind:
-                    obs_input = np.zeros(2)
-                else:
-                    obs_input = curr_pos
+            pred_next_obs = None
+            last_valid_obs = curr_pos.copy()
 
-                n_obs = torch.FloatTensor(obs_norm.normalize(obs_input)).to(DEVICE).unsqueeze(0)
+            for step in range(200):
+                # collision check
+                dist_to_obs = np.linalg.norm(curr_pos - env.obstacle_center)
+                if dist_to_obs < env.obstacle_radius:
+                    __Logger.info(f"{mode} crashed at step {step}!")
+                    break
+
+                is_blind = BLACKOUT_X_RANGE[0] <= curr_pos[0] <= BLACKOUT_X_RANGE[1]
+                if not is_blind:
+                    last_valid_obs = curr_pos.copy()
+            
+                real_obs_tensor = torch.FloatTensor(
+                        obs_norm.normalize(curr_pos)).to(DEVICE).unsqueeze(0)
+                
                 if mode == "standard":
-                    cond = n_obs
+                    # use the last valid obs as the estimation
+                    loc = torch.FloatTensor(obs_norm.normalize(
+                            last_valid_obs)).to(DEVICE).unsqueeze(0)
+                    cond = loc if is_blind else real_obs_tensor
                     network = policy_std
                 else:
-                    n_act = torch.FloatTensor(action_norm.normalize(last_action)).to(DEVICE).unsqueeze(0)
+                    # latent mode
+                    if is_blind and pred_next_obs is not None:
+                        wm_input_obs = pred_next_obs
+                    else:
+                        wm_input_obs = real_obs_tensor
+                    n_act = torch.FloatTensor(action_norm.normalize(
+                            last_action)).to(DEVICE).unsqueeze(0)
                     with torch.no_grad():
-                        # update the internal state
-                        latent, wm_state = wm.get_latent(
-                            n_obs.unsqueeze(1), 
-                            n_act.unsqueeze(1), 
+                        latent, wm_state, pred_next_obs = wm.get_latent(
+                            wm_input_obs.unsqueeze(1),
+                            n_act.unsqueeze(1),
                             wm_state
                         )
                     cond = latent
@@ -101,7 +118,7 @@ def run_blackout_experiment():
                         noisy = noise_scheduler.step(pred, t, noisy)
                 actions = action_norm.denormalize(noisy.cpu().numpy()[0])
                 # execution
-                for j in range(8):
+                for j in range(1):
                     if step + j >= 200:
                         break
                     act = actions[j]

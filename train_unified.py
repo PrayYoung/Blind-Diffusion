@@ -16,7 +16,7 @@ __Logger = logging.getLogger(__name__)
 # Need to run twice separately!!!
 # "latent" with world model
 # "standard" with default diffusion model settings
-MODE = "standard"
+MODE = "latent"
 
 BATCH_SIZE = 64
 LR = 1e-4

@@ -33,4 +33,7 @@ class SimpleWorldModel(nn.Module):
         """
         x = torch.cat([obs, prev_action], dim=-1)
         output, h_current = self.lstm(x, h_prev)
-        return output.squeeze(1), h_current
+
+        # project the next step
+        pred_next_obs = self.predict_head(output)
+        return output.squeeze(1), h_current, pred_next_obs.squeeze(1)
