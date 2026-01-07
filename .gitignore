@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+checkpoints/
+data/
+model/__pycache__/

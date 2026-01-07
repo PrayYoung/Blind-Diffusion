@@ -41,26 +41,59 @@ def train_world_model():
     optimizer = torch.optim.Adam(wm.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     loss_history = []
+
+    # schedule sampling
+    start_ratio = 0
+    end_ratio = 0.25
+    # padding val
+    act_min = torch.tensor(dataset.act_min).to(DEVICE)
+    act_max = torch.tensor(dataset.act_max).to(DEVICE)
+    padding_val = 2 * (0 - act_min) / (act_max - act_min + 1e-8) - 1
+
     __Logger.info("Training World Model started...")
     for epoch in range(50):
         epoch_loss = 0.0
         pbar = tqdm(dataloader, desc=f"Epoch {epoch+1}/50")
+
+        sampling_ratio = start_ratio + (end_ratio - start_ratio) * (epoch / 50)
+
         for obs_seq, act_seq in pbar:
             obs_seq = obs_seq.to(DEVICE)
             act_seq = act_seq.to(DEVICE)
+            B, T, _ = obs_seq.shape
 
-            prev_act = torch.cat([torch.zeros_like(act_seq[:, :1, :]),
-                                  act_seq[:, :-1, :]], dim=1)
-            # input (B, T, 4)
-            x = torch.cat([obs_seq, prev_act], dim=-1)
-            # predict t+1 from t
-            target = torch.cat([obs_seq[:, 1:, :], act_seq[:, -1:, :]], dim=1)
-            pred_next, _ = wm(x)
+            # shift right by 1
+            padding_tensor = torch.full((B,1,2), padding_val.item(), device = DEVICE)
+            prev_act_full = torch.cat([padding_tensor, act_seq[:,:-1,:]],dim=1)
+            # manual unrolling
+            outputs = []
+            last_pred_obs = None
+            h = None
 
-            loss = loss_fn(pred_next, target)
+            for t in range(T):
+                if t == 0:
+                    current_obs = obs_seq[:, t:t+1,:]
+                else:
+                    current_obs = (last_pred_obs if torch.rand(1).item() < sampling_ratio
+                                   else obs_seq[:,t:t+1,:])
+                current_act = prev_act_full[:,t:t+1,:]
+                
+                x_step = torch.cat([current_obs, current_act], dim=-1)
+                out_step , h = wm.lstm(x_step,h)
+                pred_next = wm.predict_head(out_step)
+
+                outputs.append(pred_next)
+                last_pred_obs = pred_next
+            
+            outputs = torch.cat(outputs, dim=1)
+            target = torch.cat([obs_seq[:,1:,:], obs_seq[:,-1:, :]], dim=1)
+
+            loss = loss_fn(outputs, target)
 
             optimizer.zero_grad()
             loss.backward()
+            # gradient clipping
+            torch.nn.utils.clip_grad_norm_(wm.parameters(), 1.0)
             optimizer.step()
 
             epoch_loss += loss.item() * obs_seq.size(0)

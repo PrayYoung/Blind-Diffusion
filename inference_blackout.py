@@ -72,7 +72,7 @@ def run_blackout_experiment():
             pred_next_obs = None
             last_valid_obs = curr_pos.copy()
 
-            for step in range(200):
+            for step in range(0, 200, 1):
                 # collision check
                 dist_to_obs = np.linalg.norm(curr_pos - env.obstacle_center)
                 if dist_to_obs < env.obstacle_radius:
