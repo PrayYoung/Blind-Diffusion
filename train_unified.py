@@ -17,7 +17,7 @@ __Logger = logging.getLogger(__name__)
 # Need to run twice separately!!!
 # "latent" with world model
 # "standard" with default diffusion model settings
-MODE = "standard"
+MODE = "latent"
 
 BATCH_SIZE = 64
 LR = 1e-4
@@ -71,6 +71,7 @@ def precompute_latents(dataset_path = 'data/demo.npz', obs_norm=None, act_norm=N
     act_norm = act_norm or Normalizer.from_data(action)
     n_obs = torch.FloatTensor(obs_norm.normalize(obs)).to(DEVICE)
     n_action = torch.FloatTensor(act_norm.normalize(action)).to(DEVICE)
+    B, T, D = n_action.shape
 
     wm = SimpleWorldModel(obs_dim=2, action_dim=2, hidden_dim=64).to(DEVICE)
     wm.load_state_dict(torch.load('checkpoints/world_model.pth', map_location=DEVICE))
@@ -78,13 +79,13 @@ def precompute_latents(dataset_path = 'data/demo.npz', obs_norm=None, act_norm=N
     
     all_latents = []
     with torch.no_grad():
-        for i in tqdm(range(len(n_obs))):
-            curr_obs_seq = n_obs[i]
-            curr_action_seq = n_action[i]
-            x = torch.cat([curr_obs_seq, curr_action_seq], dim=-1).unsqueeze(0)
-            output, _ = wm.lstm(x)
-            all_latents.append(output.squeeze(0).cpu().numpy())
-    return np.array(all_latents)
+        zeros = torch.zeros(B, 1, D).to(DEVICE)
+        prev_actions = torch.cat([zeros, n_action[:,:-1,:]], dim = 1)
+        lstm_input = torch.cat([n_obs, prev_actions], dim=-1)
+
+        latents_seq, _ = wm.lstm(lstm_input)
+        all_latents = latents_seq.cpu().numpy()
+    return all_latents
 
 
 def train():

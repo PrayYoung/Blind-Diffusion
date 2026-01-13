@@ -34,8 +34,8 @@ def run_blackout_experiment():
     noise_scheduler = NoiseScheduler(num_timesteps=100, device=DEVICE)
     env = ObstacleEnv()
 
-    # BLACKOUT_X_RANGE = [0, 0]
-    BLACKOUT_X_RANGE = [30, 70]
+    BLACKOUT_X_RANGE = [0, 0]
+    # BLACKOUT_X_RANGE = [30, 70]
 
     plt.figure(figsize=(10, 8))
     circle = plt.Circle(env.obstacle_center, env.obstacle_radius, color='r', alpha=0.5)
@@ -88,6 +88,14 @@ def run_blackout_experiment():
                         wm_input_obs = real_obs_tensor
                     cond = latent
                     network = policy_latent
+                    n_prev_act = torch.FloatTensor(action_norm.normalize(last_action)
+                                                   ).to(DEVICE).unsqueeze(0)
+                    with torch.no_grad():
+                        latent, wm_state = wm.get_latent(
+                            wm_input_obs.unsqueeze(1),
+                            n_prev_act.unsqueeze(1),
+                            wm_state
+                        )
                 
                 # diffusion generation
                 noisy = torch.randn(1, 16, 2).to(DEVICE)
@@ -97,25 +105,18 @@ def run_blackout_experiment():
                         pred = network(noisy, ts, cond)
                         noisy = noise_scheduler.step(pred, t, noisy)
                 actions = action_norm.denormalize(noisy.cpu().numpy()[0])
-                # execution
-                for j in range(1):
-                    if step + j >= 200:
-                        break
-                    act = actions[j]
-                    curr_pos = curr_pos + act
-                    history.append(curr_pos.copy())
-                    if mode == "latent":
-                        last_action = act
-                        n_act = torch.FloatTensor(action_norm.normalize(
-                                last_action)).to(DEVICE).unsqueeze(0)
-                        with torch.no_grad():
-                            latent, wm_state, pred_next_obs = wm.get_latent(
-                                wm_input_obs.unsqueeze(1),
-                                n_act.unsqueeze(1),
-                                wm_state
-                            )
-                    if np.linalg.norm(curr_pos - env.target_pos) < 5:
-                        break
+                act = actions[0]
+
+                if mode == 'latent':
+                    n_curr_act = torch.FloatTensor(action_norm.normalize(act)
+                                                   ).to(DEVICE).unsqueeze(0)
+                    with torch.no_grad():
+                        pred_input = torch.cat([latent, n_curr_act], dim = -1)
+                        pred_next_obs = wm.predict_head(pred_input)
+                
+                curr_pos = curr_pos + act
+                history.append(curr_pos.copy())
+                last_action = act
                 if np.linalg.norm(curr_pos - env.target_pos) < 5:
                     break
             history = np.array(history)

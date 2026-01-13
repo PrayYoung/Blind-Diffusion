@@ -67,10 +67,14 @@ def train_world_model():
                     current_obs = (last_pred_obs if torch.rand(1).item() < sampling_ratio
                                    else obs_seq[:,t:t+1,:])
                 current_act = act_seq[:,t:t+1,:]
-                
-                x_step = torch.cat([current_obs, current_act], dim=-1)
-                out_step , h = wm.lstm(x_step,h)
-                pred_next = wm.predict_head(out_step)
+
+                prev_act_input = torch.zeros(B, 1, 2).to(DEVICE) if t==0 else act_seq[:, t-1:t, :]
+
+                lstm_input = torch.cat([current_obs, prev_act_input], dim = -1)
+                latent, h = wm.lstm(lstm_input, h)
+
+                pred_input = torch.cat([latent, current_act], dim = -1)
+                pred_next = wm.predict_head(pred_input)
 
                 outputs.append(pred_next)
                 last_pred_obs = pred_next
