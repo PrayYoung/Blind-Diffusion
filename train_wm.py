@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import os
 import logging
 from model.world_model import SimpleWorldModel
+from model.normalizer import Normalizer, save_normalization
 
 __Logger = logging.getLogger(__name__)
 
@@ -15,20 +16,16 @@ class SequenceDataset(Dataset):
         data = np.load(data_path)
         self.obs = data["obs"] # (B, 100, 2)
         self.actions = data["actions"]
-        self.obs_min, self.obs_max = self.obs.min(), self.obs.max()
-        self.act_min, self.act_max = self.actions.min(), self.actions.max()
-    
-    def normalize(self, x, x_min, x_max):
-        norm = (x - x_min) / (x_max - x_min + 1e-8)
-        return 2 * norm - 1
+        self.obs_norm = Normalizer.from_data(self.obs)
+        self.act_norm = Normalizer.from_data(self.actions)
 
     def __len__(self):
         return len(self.obs)
 
     def __getitem__(self, idx):
         # return the whole trajectory
-        o = self.normalize(self.obs[idx], self.obs_min, self.obs_max)
-        a = self.normalize(self.actions[idx], self.act_min, self.act_max)
+        o = self.obs_norm.normalize(self.obs[idx])
+        a = self.act_norm.normalize(self.actions[idx])
         return torch.FloatTensor(o), torch.FloatTensor(a)
 
 def train_world_model():
@@ -45,10 +42,6 @@ def train_world_model():
     # schedule sampling
     start_ratio = 0
     end_ratio = 0.25
-    # padding val
-    act_min = torch.tensor(dataset.act_min).to(DEVICE)
-    act_max = torch.tensor(dataset.act_max).to(DEVICE)
-    padding_val = 2 * (0 - act_min) / (act_max - act_min + 1e-8) - 1
 
     __Logger.info("Training World Model started...")
     for epoch in range(50):
@@ -62,21 +55,18 @@ def train_world_model():
             act_seq = act_seq.to(DEVICE)
             B, T, _ = obs_seq.shape
 
-            # shift right by 1
-            padding_tensor = torch.full((B,1,2), padding_val.item(), device = DEVICE)
-            prev_act_full = torch.cat([padding_tensor, act_seq[:,:-1,:]],dim=1)
             # manual unrolling
             outputs = []
             last_pred_obs = None
             h = None
 
-            for t in range(T):
+            for t in range(T - 1):
                 if t == 0:
                     current_obs = obs_seq[:, t:t+1,:]
                 else:
                     current_obs = (last_pred_obs if torch.rand(1).item() < sampling_ratio
                                    else obs_seq[:,t:t+1,:])
-                current_act = prev_act_full[:,t:t+1,:]
+                current_act = act_seq[:,t:t+1,:]
                 
                 x_step = torch.cat([current_obs, current_act], dim=-1)
                 out_step , h = wm.lstm(x_step,h)
@@ -86,7 +76,7 @@ def train_world_model():
                 last_pred_obs = pred_next
             
             outputs = torch.cat(outputs, dim=1)
-            target = torch.cat([obs_seq[:,1:,:], obs_seq[:,-1:, :]], dim=1)
+            target = obs_seq[:,1:,:]
 
             loss = loss_fn(outputs, target)
 
@@ -101,6 +91,8 @@ def train_world_model():
         loss_history.append(epoch_loss / len(dataset))
     
     os.makedirs("checkpoints", exist_ok=True)
+    save_normalization("checkpoints/normalization.npz",
+                       dataset.obs_norm, dataset.act_norm)
     torch.save(wm.state_dict(), "checkpoints/world_model.pth")
     __Logger.info("World Model saved to checkpoints/world_model.pth")
 

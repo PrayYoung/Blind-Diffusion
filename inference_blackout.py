@@ -1,32 +1,19 @@
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
 from env import ObstacleEnv
 from model.net import ConditionalUnet1D
 from model.diffusion import NoiseScheduler
 from model.world_model import SimpleWorldModel
+from model.normalizer import load_normalization
 import logging
+import numpy as np
 
 __Logger = logging.getLogger(__name__)
-
-class Normalizer:
-    def __init__(self, stats):
-        self.min = stats['min']
-        self.max = stats['max']
-
-    def denormalize(self, x):
-        # [-1, 1] to [min, max]
-        return ((x + 1) /2) * (self.max - self.min) + self.min
-
-    def normalize(self, x):
-        return (x - self.min) / (self.max - self.min) * 2 - 1
 
 def run_blackout_experiment():
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-    stats = np.load('checkpoints/normalization.npz')
-    obs_norm = Normalizer({"min": stats["obs_min"], "max": stats["obs_max"]})
-    action_norm = Normalizer({"min": stats["action_min"], "max": stats["action_max"]})
+    obs_norm, action_norm = load_normalization("checkpoints/normalization.npz")
 
     # load diffusion policy
     policy_std = ConditionalUnet1D(action_dim=2, obs_dim=2).to(DEVICE)
@@ -63,11 +50,12 @@ def run_blackout_experiment():
 
     def run_sim(mode, color, label_prefix):
         __Logger.info(f"Running blackout simulation in {mode} mode...")
-        for _ in range(10):
+        for i in range(10):
             curr_pos = env.start_pos.copy()
             history = [curr_pos.copy()]
             wm_state = None
             last_action = np.zeros(2)
+            latent = torch.zeros(1, 64, device=DEVICE)
 
             pred_next_obs = None
             last_valid_obs = curr_pos.copy()
@@ -98,14 +86,6 @@ def run_blackout_experiment():
                         wm_input_obs = pred_next_obs
                     else:
                         wm_input_obs = real_obs_tensor
-                    n_act = torch.FloatTensor(action_norm.normalize(
-                            last_action)).to(DEVICE).unsqueeze(0)
-                    with torch.no_grad():
-                        latent, wm_state, pred_next_obs = wm.get_latent(
-                            wm_input_obs.unsqueeze(1),
-                            n_act.unsqueeze(1),
-                            wm_state
-                        )
                     cond = latent
                     network = policy_latent
                 
@@ -126,13 +106,22 @@ def run_blackout_experiment():
                     history.append(curr_pos.copy())
                     if mode == "latent":
                         last_action = act
+                        n_act = torch.FloatTensor(action_norm.normalize(
+                                last_action)).to(DEVICE).unsqueeze(0)
+                        with torch.no_grad():
+                            latent, wm_state, pred_next_obs = wm.get_latent(
+                                wm_input_obs.unsqueeze(1),
+                                n_act.unsqueeze(1),
+                                wm_state
+                            )
                     if np.linalg.norm(curr_pos - env.target_pos) < 5:
                         break
                 if np.linalg.norm(curr_pos - env.target_pos) < 5:
                     break
             history = np.array(history)
+            label = label_prefix if i == 0 else None
             plt.plot(history[:,0], history[:,1], color=color, linewidth=3,
-                     label=f"{label_prefix} Policy Trajectory")
+                     label=label)
 
     run_sim(mode="standard", color="blue", label_prefix="Standard")
     run_sim(mode="latent", color="green", label_prefix="Latent")

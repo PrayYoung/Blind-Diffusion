@@ -10,13 +10,14 @@ import logging
 from model.net import ConditionalUnet1D
 from model.diffusion import NoiseScheduler
 from model.world_model import SimpleWorldModel
+from model.normalizer import Normalizer, load_normalization, save_normalization
 
 __Logger = logging.getLogger(__name__)
 
 # Need to run twice separately!!!
 # "latent" with world model
 # "standard" with default diffusion model settings
-MODE = "latent"
+MODE = "standard"
 
 BATCH_SIZE = 64
 LR = 1e-4
@@ -24,31 +25,14 @@ EPOCHS = 100
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class Normalizer:
-    def __init__(self, data):
-        self.min = np.min(data, axis = (0,1))
-        self.max = np.max(data, axis = (0,1))
-        # prevent division by zero
-        self.max[self.max == self.min] += 1e-8
-
-    def normalize(self, x):
-        norm = (x - self.min) / (self.max - self.min)
-        # scale to [-1, 1]
-        return 2 * norm - 1
-
-    def denormalize(self, x):
-        norm = (x + 1) / 2
-        return norm * (self.max - self.min) + self.min
-
 class RobotDataset(Dataset):
-    def __init__(self, data_path = 'data/demo.npz', latents=None):
+    def __init__(self, data_path = 'data/demo.npz', latents=None, obs_norm=None, act_norm=None):
         data = np.load(data_path)
         self.obs = data["obs"]
         self.action = data["actions"]
         self.latents = latents
-
-        self.obs_norm = Normalizer(self.obs)
-        self.act_norm = Normalizer(self.action)
+        self.obs_norm = obs_norm or Normalizer.from_data(self.obs)
+        self.act_norm = act_norm or Normalizer.from_data(self.action)
         self.norm_obs = self.obs_norm.normalize(self.obs)
         self.norm_action = self.act_norm.normalize(self.action)
 
@@ -65,8 +49,11 @@ class RobotDataset(Dataset):
         target_action = self.norm_action[idx, t : t+horizon, :]
 
         if self.latents is not None:
-            # get latents from memory
-            cond = self.latents[idx, t]
+            # use previous-step latent to match inference
+            if t == 0:
+                cond = np.zeros_like(self.latents[idx, 0])
+            else:
+                cond = self.latents[idx, t - 1]
         else:
             cond = self.norm_obs[idx, t]
         
@@ -74,16 +61,16 @@ class RobotDataset(Dataset):
             "cond": torch.FloatTensor(cond),
             "action": torch.FloatTensor(target_action)}
 
-def precompute_latents(dataset_path = 'data/demo.npz'):
+def precompute_latents(dataset_path = 'data/demo.npz', obs_norm=None, act_norm=None):
     __Logger.info("Precomputing latents for all trajectories...")
     data = np.load(dataset_path)
     obs = data["obs"]
     action = data["actions"]
 
-    obs_norm = Normalizer(obs)
-    act_norm = Normalizer(action)
-    n_obs = torch.FloatTensor(obs_norm.normalize(obs))
-    n_action = torch.FloatTensor(act_norm.normalize(action))
+    obs_norm = obs_norm or Normalizer.from_data(obs)
+    act_norm = act_norm or Normalizer.from_data(action)
+    n_obs = torch.FloatTensor(obs_norm.normalize(obs)).to(DEVICE)
+    n_action = torch.FloatTensor(act_norm.normalize(action)).to(DEVICE)
 
     wm = SimpleWorldModel(obs_dim=2, action_dim=2, hidden_dim=64).to(DEVICE)
     wm.load_state_dict(torch.load('checkpoints/world_model.pth', map_location=DEVICE))
@@ -94,10 +81,7 @@ def precompute_latents(dataset_path = 'data/demo.npz'):
         for i in tqdm(range(len(n_obs))):
             curr_obs_seq = n_obs[i]
             curr_action_seq = n_action[i]
-            prev_act_seq = torch.cat([torch.zeros(1,2).to(DEVICE),
-                                      curr_action_seq[:-1]], dim=0)
-            
-            x = torch.cat([curr_obs_seq, prev_act_seq], dim=-1).unsqueeze(0)
+            x = torch.cat([curr_obs_seq, curr_action_seq], dim=-1).unsqueeze(0)
             output, _ = wm.lstm(x)
             all_latents.append(output.squeeze(0).cpu().numpy())
     return np.array(all_latents)
@@ -106,19 +90,21 @@ def precompute_latents(dataset_path = 'data/demo.npz'):
 def train():
     __Logger.info(f"Training in {MODE.upper()} mode on {DEVICE}")
 
+    os.makedirs("checkpoints", exist_ok=True)
+    if os.path.exists("checkpoints/normalization.npz"):
+        obs_norm, act_norm = load_normalization("checkpoints/normalization.npz")
+    else:
+        data = np.load("data/demo.npz")
+        obs_norm = Normalizer.from_data(data["obs"])
+        act_norm = Normalizer.from_data(data["actions"])
+        save_normalization("checkpoints/normalization.npz", obs_norm, act_norm)
+
     latents = None
     if MODE == "latent":
-        latents = precompute_latents()
+        latents = precompute_latents(obs_norm=obs_norm, act_norm=act_norm)
 
-    dataset = RobotDataset(latents=latents)
+    dataset = RobotDataset(latents=latents, obs_norm=obs_norm, act_norm=act_norm)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    os.makedirs("checkpoints", exist_ok=True)
-    np.savez("checkpoints/normalization.npz",
-             obs_min=dataset.obs_norm.min,
-             obs_max=dataset.obs_norm.max,
-             action_min=dataset.act_norm.min,
-             action_max=dataset.act_norm.max)
     
     obs_dim = 64 if MODE == "latent" else 2
     policy = ConditionalUnet1D(action_dim=2, obs_dim=obs_dim).to(DEVICE)
