@@ -3,12 +3,26 @@ __pycache__/
 *.pyc
 *.pyo
 
+# venv
+.venv/
+
+# Editors
 .vscode/
 .idea/
 
 # OS
 .DS_Store
 
+# Project outputs
+runs/
 checkpoints/
+
+# Data
+.data/
 data/
+
+# Env
+.env
+
+# Legacy
 model/__pycache__/

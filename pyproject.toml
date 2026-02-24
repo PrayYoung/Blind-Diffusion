@@ -1,0 +1,35 @@
+[project]
+name = "blind-diffusion"
+version = "0.1.0"
+description = "RSSM world model + MPC on RoboMimic low-dim data"
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+  "numpy",
+  "pyyaml",
+  "omegaconf",
+  "torch",
+  "h5py",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+robomimic = [
+  "robomimic",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100

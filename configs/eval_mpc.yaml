@@ -1,0 +1,29 @@
+exp_name: eval_lift
+seed: 0
+
+# dataset/model
+checkpoint: runs/wm_lift/checkpoints/best.pt
+model: rssm_small
+seq_len: 50
+burn_in: 5
+
+# env
+episodes: 20
+render: false
+
+# planner
+planner: cem
+
+# eval
+eval:
+  mode: mpc
+
+# baseline (BC) training
+bc_epochs: 5
+lr: 1.0e-3
+batch_size: 256
+num_workers: 4
+log_every: 100
+
+# paths
+run_dir: runs

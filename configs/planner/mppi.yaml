@@ -1,0 +1,10 @@
+planner:
+  type: mppi
+  horizon: 15
+  population: 256
+  lambda_: 1.0
+  noise_std: 0.3
+  action_low: -1.0
+  action_high: 1.0
+  terminal_penalty: 10.0
+  constraint_penalty: 5.0

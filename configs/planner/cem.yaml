@@ -1,0 +1,11 @@
+planner:
+  type: cem
+  horizon: 15
+  population: 256
+  elites: 32
+  iterations: 4
+  alpha: 0.1
+  action_low: -1.0
+  action_high: 1.0
+  terminal_penalty: 10.0
+  constraint_penalty: 5.0

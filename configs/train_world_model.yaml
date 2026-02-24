@@ -1,0 +1,25 @@
+exp_name: wm_lift
+seed: 0
+
+# dataset
+seq_len: 50
+burn_in: 5
+batch_size: 64
+num_workers: 4
+val_fraction: 0.02
+
+# optimization
+lr: 3.0e-4
+weight_decay: 1.0e-6
+max_steps: 20000
+log_every: 100
+val_every: 1000
+grad_clip: 100.0
+kl_free_bits: 1.0
+kl_scale: 1.0
+
+# paths
+run_dir: runs
+
+# includes
+model: rssm_small
