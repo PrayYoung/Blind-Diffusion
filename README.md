@@ -25,11 +25,21 @@ uv pip install -e ".[robomimic]"
 1) Install `robomimic` and its dependencies (see RoboMimic docs).
 2) Download low-dim datasets (e.g., `lift`):
    - `https://robomimic.github.io/docs/datasets/overview.html`
+   - `https://robomimic.github.io/docs/datasets/datasets.html`
+   - Direct release index: `https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
 3) Set `ROBO_DATA` to the folder containing the `.hdf5` file.
 
 Example:
 ```bash
 export ROBO_DATA=/path/to/robomimic/datasets
+```
+
+Command-line download (example):
+```bash
+mkdir -p ~/robomimic_datasets
+cd ~/robomimic_datasets
+curl -L -o lift_low_dim.hdf5 "<direct_dataset_link>"
+export ROBO_DATA=~/robomimic_datasets
 ```
 
 ## Train world model
