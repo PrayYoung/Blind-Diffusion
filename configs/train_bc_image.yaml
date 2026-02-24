@@ -1,0 +1,15 @@
+exp_name: bc_image_lift
+seed: 0
+
+seq_len: 10
+batch_size: 128
+num_workers: 4
+
+bc_epochs: 5
+lr: 1.0e-3
+log_every: 100
+
+embed_dim: 256
+hidden_dim: 256
+
+run_dir: runs

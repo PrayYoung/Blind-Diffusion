@@ -125,6 +125,21 @@ python scripts/eval_image_policy.py \
   eval.mode=open_loop
 ```
 
+Train image BC baseline:
+```bash
+python scripts/train_bc_image.py \
+  --config configs/train_bc_image.yaml \
+  task=lift
+```
+
+Evaluate image BC baseline:
+```bash
+python scripts/eval_image_policy.py \
+  --config configs/eval_image.yaml \
+  task=lift \
+  eval.mode=bc_eval
+```
+
 ## Project layout
 
 - `configs/`: task, model, planner, and run configs

@@ -7,6 +7,8 @@ burn_in: 5
 batch_size: 32
 num_workers: 4
 val_fraction: 0.02
+augment: true
+crop_size: 84
 
 # optimization
 lr: 3.0e-4

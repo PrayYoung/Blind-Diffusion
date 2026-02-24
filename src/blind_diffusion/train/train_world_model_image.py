@@ -101,6 +101,8 @@ def build_loaders(cfg, task_cfg):
         lowdim_keys=task_cfg.get("lowdim_keys", []),
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
+        augment=cfg.get("augment", False),
+        crop_size=cfg.get("crop_size", None),
     )
     val_size = int(len(dataset) * cfg.val_fraction)
     train_size = len(dataset) - val_size

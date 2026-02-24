@@ -14,6 +14,7 @@ from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model_image import WorldModelImage
 from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
+from blind_diffusion.baselines.open_loop_bc_image import BCImagePolicy
 
 
 def _extract_collision(info: dict) -> float:
@@ -92,6 +93,18 @@ def main():
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
 
+    bc_policy = None
+    if mode == "bc_eval":
+        bc_ckpt = load_checkpoint(os.path.join(cfg.run_dir, cfg.exp_name, "checkpoints/bc_image.pt"), map_location=device)
+        bc_policy = BCImagePolicy(image_ch, lowdim_dim, act_dim).to(device)
+        bc_policy.load_state_dict(bc_ckpt["model"])
+        bc_policy.eval()
+        bc_norm = bc_ckpt.get("norm", {})
+        act_mean = bc_norm.get("act_mean", act_mean)
+        act_std = bc_norm.get("act_std", act_std)
+        low_mean = bc_norm.get("low_mean", low_mean)
+        low_std = bc_norm.get("low_std", low_std)
+
     warned_proxy = False
     for _ in range(cfg.episodes):
         obs = env.reset()
@@ -122,7 +135,10 @@ def main():
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
 
-            if mode == "open_loop":
+            if mode == "bc_eval":
+                action = bc_policy(img, low if low is not None else None)
+                action = action.unsqueeze(0)
+            elif mode == "open_loop":
                 if open_loop_plan is None or open_loop_idx >= cfg.horizon:
                     open_loop_plan = diff.sample((1, act_dim, cfg.horizon), belief)
                     open_loop_idx = 0
