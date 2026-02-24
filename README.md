@@ -1,163 +1,204 @@
-# [BD] blind-diffusion
+# 🕶️ Blind Diffusion (BD)
+<p align="center">
+  <img src="assets/pipeline.png" width="800">
+</p>
 
-Tiny RSSM + MPC for RoboMimic low-dim control.
 
-**License:** MIT (see `LICENSE`)
+> **World models meet diffusion control.**  
+> Tiny RSSM + MPC + Diffusion for RoboMimic manipulation.
 
-Milestone 1: Train a small RSSM world model on RoboMimic low-dimensional observations, then run receding-horizon MPC (CEM or MPPI) in the learned latent dynamics. Report success rate and collision/constraint-violation rate, plus an open-loop baseline.
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![PyTorch](https://img.shields.io/badge/pytorch-2.x-orange.svg)
+![RoboMimic](https://img.shields.io/badge/dataset-RoboMimic-purple.svg)
+![Status](https://img.shields.io/badge/status-research%20prototype-yellow.svg)
 
-## Quickstart
+---
 
+## ✨ What is Blind Diffusion?
+
+**Blind Diffusion** explores a simple but powerful idea:
+
+> Learn a **latent world model**, generate **action plans** with diffusion,  
+> and execute them using **receding-horizon control**.
+
+This repo implements a minimal research-friendly pipeline for robotic manipulation:
+
+🧠 RSSM world model  
+🎯 MPC planning in latent space  
+🌫 Diffusion action sequence generation  
+👁 Image-based perception (Milestone 3)
+
+Designed to be:
+
+- 🔬 research-oriented  
+- 🧩 modular & extensible  
+- ⚡ runnable on a single GPU  
+- 🤖 aligned with modern model-based robotics  
+
+---
+
+## 🚀 Milestone Overview
+
+### 🥇 Milestone 1 — Latent World Model + MPC
+Train a small RSSM world model on RoboMimic low-dimensional observations and run receding-horizon MPC in latent space.
+
+Outputs:
+- success rate
+- collision / constraint violations
+- open-loop baseline comparison
+
+---
+
+### 🥈 Milestone 2 — Diffusion Policy
+Train a diffusion model to generate action sequences conditioned on RSSM belief state.
+
+- diffusion open-loop baseline
+- diffusion + receding horizon control
+
+---
+
+### 🥉 Milestone 3 — Vision-Based Control
+Extend to image observations with a CNN encoder.
+
+- image-conditioned RSSM
+- diffusion planning from vision
+- contact / collision metrics
+
+---
+
+## ⚡ Quickstart
 ```bash
 uv venv
 source .venv/bin/activate
 uv pip install -e .
 export PYTHONPATH=./src
 ```
-
 If you need RoboMimic env evaluation on Linux:
 ```bash
 uv pip install -e ".[robomimic]"
 ```
+---
 
-## RoboMimic data
+## 📦 RoboMimic Data Setup
 
-1) Install `robomimic` and its dependencies (see RoboMimic docs).
-2) Download low-dim datasets (e.g., `lift`):
-   - `https://robomimic.github.io/docs/datasets/overview.html`
-   - `https://robomimic.github.io/docs/datasets/datasets.html`
-   - Direct release index: `https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
-3) Set `ROBO_DATA` to the folder containing the `.hdf5` file.
-
-Example:
+1. Install RoboMimic and dependencies.
+2. Download low-dim datasets (e.g. `lift`):
+`https://robomimic.github.io/docs/datasets/overview.html`
+`https://robomimic.github.io/docs/datasets/datasets.html`
+`https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
+3. Set dataset path:
 ```bash
 export ROBO_DATA=/path/to/robomimic/datasets
 ```
-
-Command-line download (example):
+Example download:
 ```bash
 mkdir -p ~/robomimic_datasets
 cd ~/robomimic_datasets
 curl -L -o lift_low_dim.hdf5 "<direct_dataset_link>"
 export ROBO_DATA=~/robomimic_datasets
 ```
+---
 
-## Train world model
-
+## ✅ Run Order (Minimal)
+1. Train world model (low-dim):
 ```bash
-python scripts/train_wm.py \
-  --config configs/train_world_model.yaml \
-  task=lift
+uv run python scripts/train_wm.py --config configs/train_world_model.yaml task=lift
 ```
-
-Outputs:
-- `runs/<exp_name>/checkpoints/*.pt`
-- `runs/<exp_name>/logs.jsonl`
-- `runs/<exp_name>/metrics.json`
-
-## Train open-loop baseline (BC)
-
+2. Evaluate MPC:
 ```bash
-python scripts/eval_open_loop.py \
-  --config configs/eval_mpc.yaml \
-  task=lift \
-  eval.mode=bc_train
+uv run python scripts/eval_mpc.py --config configs/eval_mpc.yaml task=lift
 ```
-
-Evaluate BC:
+3. Train diffusion (Milestone 2):
 ```bash
-python scripts/eval_open_loop.py \
-  --config configs/eval_mpc.yaml \
-  task=lift \
-  eval.mode=bc_eval
+uv run python scripts/train_diffusion.py --config configs/train_diffusion.yaml task=lift
 ```
-
-## Evaluate MPC
-
+4. Evaluate diffusion (RHC):
 ```bash
-python scripts/eval_mpc.py \
-  --config configs/eval_mpc.yaml \
-  task=lift
+uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml task=lift
 ```
+---
 
-## Milestone 2: Diffusion policy
-
-Train diffusion policy (conditioned on frozen RSSM belief):
+## 🧪 Optional Baselines
+BC (low-dim):
 ```bash
-python scripts/train_diffusion.py \
-  --config configs/train_diffusion.yaml \
-  task=lift
+uv run python scripts/eval_open_loop.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_train
+uv run python scripts/eval_open_loop.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_eval
 ```
-
-Evaluate diffusion policy (receding horizon control):
+Diffusion open-loop:
 ```bash
-python scripts/eval_diffusion.py \
-  --config configs/eval_diffusion.yaml \
-  task=lift
+uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml task=lift eval.mode=open_loop
 ```
-
-Open-loop diffusion baseline:
+Image BC:
 ```bash
-python scripts/eval_diffusion.py \
-  --config configs/eval_diffusion.yaml \
-  task=lift \
-  eval.mode=open_loop
+uv run python scripts/train_bc_image.py --config configs/train_bc_image.yaml task=lift
+uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift eval.mode=bc_eval
 ```
+---
 
-## Milestone 3: Image-based world model + diffusion
-
-Train image-based world model:
+## 👁 Milestone 3 (Images)
+1. Train image world model:
 ```bash
-python scripts/train_wm_image.py \
-  --config configs/train_world_model_image.yaml \
-  task=lift
+uv run python scripts/train_wm_image.py --config configs/train_world_model_image.yaml task=lift
 ```
-
-Train image-conditioned diffusion:
+2. Train image diffusion:
 ```bash
-python scripts/train_diffusion_image.py \
-  --config configs/train_diffusion_image.yaml \
-  task=lift
+uv run python scripts/train_diffusion_image.py --config configs/train_diffusion_image.yaml task=lift
 ```
-
-Evaluate image-conditioned diffusion:
+3. Evaluate image diffusion (RHC):
 ```bash
-python scripts/eval_image_policy.py \
-  --config configs/eval_image.yaml \
-  task=lift
+uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift
 ```
-
-Open-loop image diffusion baseline:
+Open-loop image diffusion:
 ```bash
-python scripts/eval_image_policy.py \
-  --config configs/eval_image.yaml \
-  task=lift \
-  eval.mode=open_loop
+uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift eval.mode=open_loop
 ```
+---
 
-Train image BC baseline:
-```bash
-python scripts/train_bc_image.py \
-  --config configs/train_bc_image.yaml \
-  task=lift
+## 📁 Project Layout
 ```
-
-Evaluate image BC baseline:
-```bash
-python scripts/eval_image_policy.py \
-  --config configs/eval_image.yaml \
-  task=lift \
-  eval.mode=bc_eval
+configs/ — experiment & model configs  
+scripts/ — CLI entry points  
+src/blind_diffusion/ — core library  
+runs/ — outputs & checkpoints  
 ```
+---
 
-## Project layout
+## 🧩 Design Notes
 
-- `configs/`: task, model, planner, and run configs
-- `scripts/`: CLI entry points
-- `src/blind_diffusion/`: library code
-- `runs/`: outputs (checkpoints, logs, metrics)
+- Milestone 1 uses low-dim observations only  
+- Collision / constraint violation defined in:
+`
+src/blind_diffusion/planner/cost.py
+`
+---
 
-## Notes
+## 🎯 Why this project?
 
-- Milestone 1 uses low-dim observations only (no images).
-- Collision/constraint violation is defined in `src/blind_diffusion/planner/cost.py`.
+Modern robot learning is converging toward:
+
+✔ world models  
+✔ generative planning  
+✔ receding horizon control  
+
+This repo is a minimal playground for exploring that convergence.
+
+---
+
+## 🛣 Roadmap
+
+- cross-attention planning  
+- latent diffusion planning  
+- multi-task RoboMimic  
+- real robot transfer  
+- uncertainty-aware planning  
+
+---
+
+## 📜 License
+
+MIT License — see LICENSE.
+
+---
+
+⭐ If you find this useful, give it a star and experiment freely.
