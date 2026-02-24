@@ -70,6 +70,30 @@ python scripts/eval_mpc.py \
   task=lift
 ```
 
+## Milestone 2: Diffusion policy
+
+Train diffusion policy (conditioned on frozen RSSM belief):
+```bash
+python scripts/train_diffusion.py \
+  --config configs/train_diffusion.yaml \
+  task=lift
+```
+
+Evaluate diffusion policy (receding horizon control):
+```bash
+python scripts/eval_diffusion.py \
+  --config configs/eval_diffusion.yaml \
+  task=lift
+```
+
+Open-loop diffusion baseline:
+```bash
+python scripts/eval_diffusion.py \
+  --config configs/eval_diffusion.yaml \
+  task=lift \
+  eval.mode=open_loop
+```
+
 ## Project layout
 
 - `configs/`: task, model, planner, and run configs

@@ -36,6 +36,17 @@ class RSSM(nn.Module):
         eps = torch.randn_like(std)
         return mean + eps * std
 
+    def observe_step(self, obs_embed: torch.Tensor, action: torch.Tensor, state: dict):
+        # obs_embed: [B, obs_dim], action: [B, action_dim]
+        h = state["h"]
+        z = state["z"]
+        x = torch.cat([z, action], dim=-1)
+        h = self.gru(x, h)
+        post_params = self.post_net(torch.cat([h, obs_embed], dim=-1))
+        post_mean, post_std = self._get_stats(post_params)
+        z = self._sample(post_mean, post_std)
+        return {"h": h, "z": z}
+
     def observe(self, obs_seq: torch.Tensor, action_seq: torch.Tensor):
         # obs_seq: [B, T, obs_dim], action_seq: [B, T, action_dim]
         B, T, _ = obs_seq.shape
