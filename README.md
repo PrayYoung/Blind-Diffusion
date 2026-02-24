@@ -94,6 +94,37 @@ python scripts/eval_diffusion.py \
   eval.mode=open_loop
 ```
 
+## Milestone 3: Image-based world model + diffusion
+
+Train image-based world model:
+```bash
+python scripts/train_wm_image.py \
+  --config configs/train_world_model_image.yaml \
+  task=lift
+```
+
+Train image-conditioned diffusion:
+```bash
+python scripts/train_diffusion_image.py \
+  --config configs/train_diffusion_image.yaml \
+  task=lift
+```
+
+Evaluate image-conditioned diffusion:
+```bash
+python scripts/eval_image_policy.py \
+  --config configs/eval_image.yaml \
+  task=lift
+```
+
+Open-loop image diffusion baseline:
+```bash
+python scripts/eval_image_policy.py \
+  --config configs/eval_image.yaml \
+  task=lift \
+  eval.mode=open_loop
+```
+
 ## Project layout
 
 - `configs/`: task, model, planner, and run configs

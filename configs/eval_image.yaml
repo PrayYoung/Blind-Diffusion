@@ -1,0 +1,26 @@
+exp_name: eval_image_lift
+seed: 0
+
+# env
+episodes: 20
+
+# diffusion
+horizon: 8
+base_ch: 64
+timesteps: 100
+schedule: cosine
+
+# checkpoints
+wm_checkpoint: runs/wm_image_lift/checkpoints/best.pt
+diff_checkpoint: runs/diff_image_lift/checkpoints/diffusion_epoch_9.pt
+
+# paths
+run_dir: runs
+
+# eval
+eval:
+  mode: rhc
+
+# includes
+model: rssm_image_small
+diffusion: diffusion_small

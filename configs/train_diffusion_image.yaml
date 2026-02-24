@@ -1,0 +1,31 @@
+exp_name: diff_image_lift
+seed: 0
+
+# dataset
+seq_len: 30
+burn_in: 5
+batch_size: 32
+num_workers: 4
+
+# diffusion
+horizon: 8
+base_ch: 64
+timesteps: 100
+schedule: cosine
+
+# optimization
+lr: 1.0e-4
+weight_decay: 1.0e-6
+epochs: 10
+grad_clip: 100.0
+log_every: 100
+
+# world model
+wm_checkpoint: runs/wm_image_lift/checkpoints/best.pt
+
+# paths
+run_dir: runs
+
+# includes
+model: rssm_image_small
+diffusion: diffusion_small
