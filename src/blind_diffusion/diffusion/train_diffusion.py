@@ -67,8 +67,10 @@ def main():
     logger = JSONLLogger(os.path.join(run_dir, "diffusion_logs.jsonl"))
 
     step = 0
+    total_steps = cfg.epochs * len(loader)
+    pbar = tqdm(total=total_steps, desc="train_diffusion", leave=True)
     for epoch in range(cfg.epochs):
-        for batch in tqdm(loader, desc="train_diffusion", leave=False):
+        for batch in loader:
             obs = batch["obs"].to(device)
             actions = batch["actions"].to(device)
 
@@ -91,8 +93,8 @@ def main():
 
             if step % cfg.log_every == 0:
                 logger.log({"step": step, "loss": loss.item()})
-
             step += 1
+            pbar.update(1)
 
         save_checkpoint(
             os.path.join(run_dir, f"checkpoints/diffusion_epoch_{epoch}.pt"),
@@ -105,6 +107,7 @@ def main():
 
     with open(os.path.join(run_dir, "diffusion_metrics.json"), "w", encoding="utf-8") as f:
         json.dump({"final_loss": float(loss.item())}, f, indent=2)
+    pbar.close()
 
 
 if __name__ == "__main__":

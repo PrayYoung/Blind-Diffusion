@@ -35,8 +35,10 @@ def train_bc(cfg, task_cfg, run_dir):
 
     logger = JSONLLogger(os.path.join(run_dir, "bc_logs.jsonl"))
     step = 0
+    total_steps = cfg.bc_epochs * len(loader)
+    pbar = tqdm(total=total_steps, desc="train_bc", leave=True)
     for epoch in range(cfg.bc_epochs):
-        for batch in tqdm(loader, desc="train_bc", leave=False):
+        for batch in loader:
             obs = batch["obs"][:, 0].to(device)
             act = batch["actions"][:, 0].to(device)
             pred = policy(obs)
@@ -47,6 +49,7 @@ def train_bc(cfg, task_cfg, run_dir):
             if step % cfg.log_every == 0:
                 logger.log({"step": step, "loss": loss.item()})
             step += 1
+            pbar.update(1)
 
     save_checkpoint(
         os.path.join(run_dir, "checkpoints/bc.pt"),
@@ -54,4 +57,5 @@ def train_bc(cfg, task_cfg, run_dir):
     )
     with open(os.path.join(run_dir, "bc_metrics.json"), "w", encoding="utf-8") as f:
         json.dump({"loss": float(loss.item())}, f, indent=2)
+    pbar.close()
     return policy

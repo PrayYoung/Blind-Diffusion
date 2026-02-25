@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10-slim-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl git tar \
     libosmesa6-dev libgl1-mesa-glx libglfw3 libglew-dev \
-    patchelf gcc build-essential \
+    patchelf gcc build-essential cmake\
     && rm -rf /var/lib/apt/lists/*
 
 # 2) Install MuJoCo 2.1.0 (mujoco210)
@@ -17,7 +17,7 @@ RUN mkdir -p /root/.mujoco && \
 
 # 3) Env vars (make MuJoCo discoverable)
 ENV MUJOCO_PATH=/root/.mujoco/mujoco210
-ENV LD_LIBRARY_PATH=/root/.mujoco/mujoco210/bin:/usr/lib/nvidia:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/root/.mujoco/mujoco210/bin:/usr/lib/nvidia
 ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so:/usr/lib/x86_64-linux-gnu/libGL.so.1
 ENV MUJOCO_GL=osmesa
 

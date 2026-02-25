@@ -117,9 +117,10 @@ def main():
 
     best_val = float("inf")
     step = 0
+    pbar = tqdm(total=cfg.max_steps, desc="train_wm", leave=True)
     while step < cfg.max_steps:
         model.train()
-        for batch in tqdm(train_loader, desc="train_wm", leave=False):
+        for batch in train_loader:
             batch = {k: v.to(device) for k, v in batch.items()}
             loss, logs = compute_loss(batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale)
 
@@ -130,6 +131,7 @@ def main():
 
             if step % cfg.log_every == 0:
                 logger.log({"step": step, **logs})
+            pbar.update(1)
             step += 1
             if step >= cfg.max_steps:
                 break
@@ -152,13 +154,14 @@ def main():
     metrics = {"best_val": best_val}
     with open(os.path.join(run_dir, "metrics.json"), "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
+    pbar.close()
 
 
 def evaluate(model, loader, device, cfg):
     model.eval()
     losses = []
     with torch.no_grad():
-        for batch in tqdm(loader, desc="val_wm", leave=False):
+        for batch in loader:
             batch = {k: v.to(device) for k, v in batch.items()}
             loss, _ = compute_loss(batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale)
             losses.append(loss.item())
