@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+runs/
+data/
+.data/
+*.egg-info/
+.git/
+*.hdf5
+*.tar.gz

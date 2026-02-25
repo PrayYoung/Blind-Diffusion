@@ -1,9 +1,0 @@
-numpy
-pyyaml
-omegaconf
-torch
-h5py
-tqdm
-
-[robomimic]
-robomimic

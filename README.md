@@ -67,7 +67,30 @@ Extend to image observations with a CNN encoder.
 
 ---
 
-## ⚡ Quickstart
+## 🐳 Docker (Recommended)
+Build image (includes system deps, MuJoCo 2.1.0, uv, robomimic):
+```bash
+docker build -t blind-diffusion:latest .
+```
+Run container:
+```bash
+docker run --rm -it \
+  -v $PWD:/workspace \
+  -w /workspace \
+  blind-diffusion:latest
+```
+If you want to use local datasets:
+```bash
+docker run --rm -it \
+  -v $PWD:/workspace \
+  -v /path/to/robomimic_datasets:/data \
+  -e ROBO_DATA=/data \
+  -w /workspace \
+  blind-diffusion:latest
+```
+---
+
+## ⚡ Quickstart (Local)
 ```bash
 uv venv
 source .venv/bin/activate
@@ -78,9 +101,11 @@ If you need RoboMimic env evaluation on Linux (installs this repo + robomimic):
 ```bash
 uv pip install -e ".[robomimic]"
 ```
+You also might need mujoco_py installed
 ---
 
 ## 📦 RoboMimic Data Setup
+This section applies to both local and Docker runs. For Docker, mount your dataset folder and set `ROBO_DATA=/data` (see Docker section).
 
 1. Install RoboMimic and dependencies.
 2. Download low-dim datasets (default: `lift/low_dim_v141.hdf5`):

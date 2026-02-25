@@ -21,10 +21,11 @@ checkpoints/
 .data/
 /data/
 
+# Packaging
+*.egg-info/
+
 # Env
 .env
 
 # Legacy
 model/__pycache__/
-
-*.egg-info/

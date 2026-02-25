@@ -11,11 +11,13 @@ dependencies = [
   "torch",
   "h5py",
   "tqdm",
+  "mujoco>=3.5.0",
 ]
 
 [project.optional-dependencies]
 robomimic = [
   "robomimic",
+  "Cython<3.0",
 ]
 
 [tool.uv]
