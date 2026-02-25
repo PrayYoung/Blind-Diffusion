@@ -19,7 +19,7 @@ checkpoints/
 
 # Data
 .data/
-data/
+/data/
 
 # Env
 .env
