@@ -3,6 +3,7 @@ import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
+from tqdm import tqdm
 from omegaconf import OmegaConf
 
 from blind_diffusion.utils.hydra import parse_config
@@ -137,7 +138,7 @@ def main():
     step = 0
     while step < cfg.max_steps:
         model.train()
-        for batch in train_loader:
+        for batch in tqdm(train_loader, desc="train_wm_image", leave=False):
             batch = {k: v.to(device) for k, v in batch.items()}
             loss, logs = compute_loss(batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale)
 
@@ -176,7 +177,7 @@ def evaluate(model, loader, device, cfg):
     model.eval()
     losses = []
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader, desc="val_wm_image", leave=False):
             batch = {k: v.to(device) for k, v in batch.items()}
             loss, _ = compute_loss(batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale)
             losses.append(loss.item())

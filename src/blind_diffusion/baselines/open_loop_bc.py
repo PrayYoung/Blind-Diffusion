@@ -3,6 +3,7 @@ import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from omegaconf import OmegaConf
 
 from blind_diffusion.data.robomimic_dataset import RoboMimicSequenceDataset
@@ -35,7 +36,7 @@ def train_bc(cfg, task_cfg, run_dir):
     logger = JSONLLogger(os.path.join(run_dir, "bc_logs.jsonl"))
     step = 0
     for epoch in range(cfg.bc_epochs):
-        for batch in loader:
+        for batch in tqdm(loader, desc="train_bc", leave=False):
             obs = batch["obs"][:, 0].to(device)
             act = batch["actions"][:, 0].to(device)
             pred = policy(obs)

@@ -26,3 +26,5 @@ checkpoints/
 
 # Legacy
 model/__pycache__/
+
+*.egg-info/

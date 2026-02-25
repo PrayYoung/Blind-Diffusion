@@ -2,6 +2,7 @@ import os
 import json
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from omegaconf import OmegaConf
 
 from blind_diffusion.utils.hydra import parse_config
@@ -65,7 +66,7 @@ def main():
 
     step = 0
     for epoch in range(cfg.epochs):
-        for batch in loader:
+        for batch in tqdm(loader, desc="train_diffusion_image", leave=False):
             images = batch["images"].to(device)
             actions = batch["actions"].to(device)
             lowdim = batch.get("lowdim")

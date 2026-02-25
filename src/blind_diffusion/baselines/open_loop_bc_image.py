@@ -2,6 +2,7 @@ import os
 import json
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from omegaconf import OmegaConf
 
 from blind_diffusion.data.robomimic_dataset_image import RoboMimicImageSequenceDataset
@@ -54,7 +55,7 @@ def train_bc_image(cfg, task_cfg, run_dir):
     logger = JSONLLogger(os.path.join(run_dir, "bc_image_logs.jsonl"))
     step = 0
     for epoch in range(cfg.bc_epochs):
-        for batch in loader:
+        for batch in tqdm(loader, desc="train_bc_image", leave=False):
             images = batch["images"][:, 0].to(device)
             actions = batch["actions"][:, 0].to(device)
             lowdim = batch.get("lowdim")

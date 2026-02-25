@@ -3,6 +3,7 @@ import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
@@ -67,7 +68,7 @@ def main():
 
     step = 0
     for epoch in range(cfg.epochs):
-        for batch in loader:
+        for batch in tqdm(loader, desc="train_diffusion", leave=False):
             obs = batch["obs"].to(device)
             actions = batch["actions"].to(device)
 

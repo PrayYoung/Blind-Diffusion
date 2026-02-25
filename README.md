@@ -74,7 +74,7 @@ source .venv/bin/activate
 uv pip install -e .
 export PYTHONPATH=./src
 ```
-If you need RoboMimic env evaluation on Linux:
+If you need RoboMimic env evaluation on Linux (installs this repo + robomimic):
 ```bash
 uv pip install -e ".[robomimic]"
 ```
@@ -83,7 +83,7 @@ uv pip install -e ".[robomimic]"
 ## 📦 RoboMimic Data Setup
 
 1. Install RoboMimic and dependencies.
-2. Download low-dim datasets (e.g. `lift`):
+2. Download low-dim datasets (default: `lift/low_dim_v141.hdf5`):
 `https://robomimic.github.io/docs/datasets/overview.html`
 `https://robomimic.github.io/docs/datasets/datasets.html`
 `https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
@@ -93,10 +93,15 @@ export ROBO_DATA=/path/to/robomimic/datasets
 ```
 Example download:
 ```bash
-mkdir -p ~/robomimic_datasets
-cd ~/robomimic_datasets
+mkdir -p ./robomimic_datasets
+cd ./robomimic_datasets
 curl -L -o lift_low_dim.hdf5 "<direct_dataset_link>"
-export ROBO_DATA=~/robomimic_datasets
+export ROBO_DATA=./robomimic_datasets
+```
+RoboMimic downloader (after installing robomimic):
+```bash
+python -m robomimic.scripts.download_datasets --task lift --dataset_type low_dim --version v141 --download_dir ./robomimic_datasets
+export ROBO_DATA=./robomimic_datasets
 ```
 ---
 
