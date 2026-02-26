@@ -2,6 +2,8 @@ import os
 import json
 import torch
 from omegaconf import OmegaConf
+import numpy as np
+import robomimic.utils.obs_utils as ObsUtils
 
 from blind_diffusion.utils.hydra import parse_config
 from blind_diffusion.utils.seed import set_seed
@@ -46,6 +48,16 @@ def main():
     hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
     env = make_env(hdf5_path)
 
+    rgb_keys = [k for k in task_cfg.obs_keys if "rgb" in k.lower() or "image" in k.lower()]
+    low_dim_keys = [k for k in task_cfg.obs_keys if k not in rgb_keys]
+
+    ObsUtils.initialize_obs_utils_with_obs_specs({
+        "obs": {
+            "low_dim": low_dim_keys,
+            "rgb": rgb_keys
+        }
+    })
+
     mode = cfg.get("eval", {}).get("mode", "mpc")
     if mode == "bc_train":
         run_dir = os.path.join(cfg.run_dir, cfg.exp_name)
@@ -56,8 +68,9 @@ def main():
     device = get_device()
     ckpt = load_checkpoint(cfg.checkpoint, map_location=device)
 
-    obs_dim = sum([env.observation_space[k].shape[0] for k in task_cfg.obs_keys])
-    action_dim = env.action_space.shape[0]
+    dummy_obs = env.reset()
+    obs_dim = sum([dummy_obs[k].shape[0] for k in task_cfg.obs_keys])
+    action_dim = env.action_dimension
 
     model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
     wm = WorldModel(obs_dim, action_dim, model_cfg).to(device)
@@ -71,8 +84,8 @@ def main():
     act_mean = norm.get("act_mean")
     act_std = norm.get("act_std")
 
-    action_low = torch.tensor(env.action_space.low, device=device, dtype=torch.float32)
-    action_high = torch.tensor(env.action_space.high, device=device, dtype=torch.float32)
+    action_low = torch.tensor(-np.ones(action_dim), device=device, dtype=torch.float32)
+    action_high = torch.tensor(np.ones(action_dim), device=device, dtype=torch.float32)
 
     if mode == "bc_eval":
         bc = BCPolicy(obs_dim, action_dim).to(device)

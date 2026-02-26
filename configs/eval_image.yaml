@@ -19,7 +19,7 @@ run_dir: runs
 
 # eval
 eval:
-  mode: rhc
+  mode: image_rhc
 
 # includes
 model: rssm_image_small

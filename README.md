@@ -137,7 +137,7 @@ uv run python scripts/train_wm.py --config configs/train_world_model.yaml task=l
 ```
 2. Evaluate MPC:
 ```bash
-uv run python scripts/eval_mpc.py --config configs/eval_mpc.yaml task=lift
+uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=mpc
 ```
 3. Train diffusion (Milestone 2):
 ```bash
@@ -152,8 +152,8 @@ uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml tas
 ## 🧪 Optional Baselines
 BC (low-dim):
 ```bash
-uv run python scripts/eval_open_loop.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_train
-uv run python scripts/eval_open_loop.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_eval
+uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_train
+uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_eval
 ```
 Diffusion open-loop:
 ```bash
@@ -162,7 +162,7 @@ uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml tas
 Image BC:
 ```bash
 uv run python scripts/train_bc_image.py --config configs/train_bc_image.yaml task=lift
-uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift eval.mode=bc_eval
+uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_bc_eval
 ```
 ---
 
@@ -177,11 +177,11 @@ uv run python scripts/train_diffusion_image.py --config configs/train_diffusion_
 ```
 3. Evaluate image diffusion (RHC):
 ```bash
-uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift
+uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_rhc
 ```
 Open-loop image diffusion:
 ```bash
-uv run python scripts/eval_image_policy.py --config configs/eval_image.yaml task=lift eval.mode=open_loop
+uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_open_loop
 ```
 ---
 

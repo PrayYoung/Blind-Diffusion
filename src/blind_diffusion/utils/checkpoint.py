@@ -9,4 +9,4 @@ def save_checkpoint(path: str, payload: Dict[str, Any]) -> None:
 
 
 def load_checkpoint(path: str, map_location=None) -> Dict[str, Any]:
-    return torch.load(path, map_location=map_location)
+    return torch.load(path, map_location=map_location, weights_only=False)

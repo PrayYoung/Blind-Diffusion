@@ -1,13 +1,11 @@
-import os
+import robomimic.utils.file_utils as FileUtils
 from robomimic.utils.env_utils import create_env_from_metadata
-import h5py
-import json
 
 
 def make_env(hdf5_path: str):
-    with h5py.File(hdf5_path, "r") as f:
-        env_meta = f["data"].attrs.get("env_args")
-        if isinstance(env_meta, (bytes, str)):
-            env_meta = json.loads(env_meta)
+    env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path=hdf5_path)
+    
+    env_meta.setdefault("env_kwargs", {})
+    env_meta["env_kwargs"]["controller_configs"] = None
     env = create_env_from_metadata(env_meta)
     return env
