@@ -3,6 +3,7 @@ import json
 import warnings
 import numpy as np
 import torch
+from tqdm import tqdm
 from omegaconf import OmegaConf
 import hydra
 from blind_diffusion.utils.seed import set_seed
@@ -126,7 +127,7 @@ def main(cfg):
         low_std = bc_norm.get("low_std", low_std)
 
     warned_proxy = False
-    for ep in range(cfg.episodes):
+    for ep in tqdm(range(cfg.episodes), desc="eval_image", leave=True):
         obs = env.reset()
         done = False
         success = 0.0

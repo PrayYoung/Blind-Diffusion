@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import torch
+from tqdm import tqdm
 from omegaconf import OmegaConf
 import hydra
 from blind_diffusion.utils.seed import set_seed
@@ -65,7 +66,7 @@ def main(cfg):
 
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
-    for _ in range(cfg.episodes):
+    for _ in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
         obs = env.reset()
         done = False
         success = 0.0

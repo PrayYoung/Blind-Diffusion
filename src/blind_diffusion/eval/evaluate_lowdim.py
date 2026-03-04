@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+from tqdm import tqdm
 from omegaconf import OmegaConf
 import numpy as np
 import robomimic.utils.obs_utils as ObsUtils
@@ -93,7 +94,7 @@ def main(cfg):
         act_std = bc_norm.get("act_std")
 
         episodes = []
-        for _ in range(cfg.episodes):
+        for _ in tqdm(range(cfg.episodes), desc="eval_lowdim_bc", leave=True):
             obs = env.reset()
             done = False
             success = 0.0
@@ -113,7 +114,7 @@ def main(cfg):
     elif mode == "random":
         policy = RandomPolicy(action_dim, low=float(action_low.min()), high=float(action_high.max()))
         episodes = []
-        for _ in range(cfg.episodes):
+        for _ in tqdm(range(cfg.episodes), desc="eval_lowdim_random", leave=True):
             obs = env.reset()
             done = False
             success = 0.0
@@ -128,7 +129,7 @@ def main(cfg):
             episodes.append({"success": success, "collision": collision})
     else:
         episodes = []
-        for _ in range(cfg.episodes):
+        for _ in tqdm(range(cfg.episodes), desc="eval_lowdim_mpc", leave=True):
             obs = env.reset()
             done = False
             success = 0.0
