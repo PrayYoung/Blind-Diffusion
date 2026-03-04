@@ -16,6 +16,7 @@ from blind_diffusion.models.vision_encoder import SmallResNet
 from blind_diffusion.models.rssm import RSSM
 from blind_diffusion.models.heads import RewardHead, DoneHead, ObsHead
 from blind_diffusion.models.losses import kl_normal, mse_loss, bce_logits_loss
+from blind_diffusion.models.modules import mlp
 
 
 class WorldModelImage(torch.nn.Module):
@@ -41,6 +42,9 @@ class WorldModelImage(torch.nn.Module):
         self.done_head = DoneHead(feat_dim, cfg_model.heads.done_hidden)
         # predict lowdim state if provided
         self.obs_head = ObsHead(feat_dim, lowdim_dim, cfg_model.heads.obs_hidden) if lowdim_dim > 0 else None
+        # predict image embedding (stop-grad target)
+        self.vision_head = mlp(feat_dim, cfg_model.vision.embed_dim, cfg_model.vision_head.hidden_dim, 2)
+        self.vision_loss_scale = float(cfg_model.vision_head.loss_scale)
 
     def encode_obs(self, images, lowdim=None):
         B, T = images.shape[:2]
@@ -58,7 +62,8 @@ class WorldModelImage(torch.nn.Module):
         reward_pred = self.reward_head(feat)
         done_logits = self.done_head(feat)
         obs_pred = self.obs_head(feat) if self.obs_head is not None else None
-        return post, obs_pred, reward_pred, done_logits
+        vision_pred = self.vision_head(feat)
+        return post, obs_pred, reward_pred, done_logits, obs_embed, vision_pred
 
 
 def compute_loss(batch, model: WorldModelImage, burn_in: int, kl_free_bits: float, kl_scale: float):
@@ -68,7 +73,7 @@ def compute_loss(batch, model: WorldModelImage, burn_in: int, kl_free_bits: floa
     dones = batch["dones"]
     lowdim = batch.get("lowdim")
 
-    post, obs_pred, reward_pred, done_logits = model(images, actions, lowdim)
+    post, obs_pred, reward_pred, done_logits, obs_embed, vision_pred = model(images, actions, lowdim)
 
     start = burn_in
     reward_loss = mse_loss(reward_pred[:, start:], rewards[:, start:])
@@ -83,13 +88,16 @@ def compute_loss(batch, model: WorldModelImage, burn_in: int, kl_free_bits: floa
         kl = torch.clamp(kl, min=kl_free_bits)
     kl_loss = kl[:, start:].mean() * kl_scale
 
-    total = reward_loss + done_loss + kl_loss + obs_loss
+    # stop-grad target for image embedding
+    vision_loss = mse_loss(vision_pred[:, start:], obs_embed[:, start:].detach())
+    total = reward_loss + done_loss + kl_loss + obs_loss + vision_loss * model.vision_loss_scale
     return total, {
         "loss": total.item(),
         "reward_loss": reward_loss.item(),
         "done_loss": done_loss.item(),
         "kl_loss": kl_loss.item(),
         "obs_loss": float(obs_loss) if isinstance(obs_loss, float) else obs_loss.item(),
+        "vision_loss": vision_loss.item(),
     }
 
 

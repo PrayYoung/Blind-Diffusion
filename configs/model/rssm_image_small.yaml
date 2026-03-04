@@ -19,3 +19,7 @@ heads:
   reward_hidden: 128
   done_hidden: 128
   obs_hidden: 128
+
+vision_head:
+  hidden_dim: 256
+  loss_scale: 1.0
