@@ -26,6 +26,13 @@ run_dir: runs
 # eval
 eval:
   mode: image_rhc
+  save_video: true
+  video_fps: 30
+  sensor_block:
+    enable: true
+    mode: prior  # prior | zero | noise
+    every_k: 20
+    duration: 5
 
 hydra:
   run:

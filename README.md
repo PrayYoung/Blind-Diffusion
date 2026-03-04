@@ -187,6 +187,11 @@ Open-loop image diffusion:
 ```bash
 uv run python scripts/eval.py task=lift eval.mode=image_open_loop
 ```
+Sensor-block demo (image eval):
+```bash
+uv run python scripts/eval.py task=lift eval.mode=image_rhc \
+  eval.save_video=true eval.sensor_block.enable=true eval.sensor_block.mode=prior
+```
 ---
 
 ## 📁 Project Layout

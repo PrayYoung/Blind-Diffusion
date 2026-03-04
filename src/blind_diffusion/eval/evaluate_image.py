@@ -10,6 +10,7 @@ from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.metrics import summarize_episode_metrics
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.env.robomimic_env import make_env
+from blind_diffusion.utils.video import save_video
 from blind_diffusion.train.train_world_model_image import WorldModelImage
 from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
@@ -37,6 +38,25 @@ def _obs_to_lowdim(obs, keys):
     if not keys:
         return None
     return torch.cat([torch.tensor(obs[k]).float() for k in keys], dim=-1)
+
+
+def _sensor_block_active(step: int, cfg) -> bool:
+    if not cfg.get("sensor_block", {}).get("enable", False):
+        return False
+    every_k = cfg.sensor_block.get("every_k", 20)
+    duration = cfg.sensor_block.get("duration", 5)
+    if every_k <= 0 or duration <= 0:
+        return False
+    return (step % every_k) < duration
+
+
+def _apply_sensor_block(img: torch.Tensor, step: int, cfg) -> torch.Tensor:
+    if not _sensor_block_active(step, cfg):
+        return img
+    mode = cfg.sensor_block.get("mode", "zero")
+    if mode == "noise":
+        return torch.rand_like(img)
+    return torch.zeros_like(img)
 
 
 @hydra.main(version_base=None, config_path="../../configs", config_name="eval_image")
@@ -71,6 +91,9 @@ def main(cfg):
     diff.load_state_dict(diff_ckpt["model"])
     diff.eval()
 
+    run_dir = os.path.join(cfg.run_dir, cfg.exp_name)
+    os.makedirs(run_dir, exist_ok=True)
+
     def normalize(x, mean, std):
         if mean is None or std is None:
             return x
@@ -103,13 +126,14 @@ def main(cfg):
         low_std = bc_norm.get("low_std", low_std)
 
     warned_proxy = False
-    for _ in range(cfg.episodes):
+    for ep in range(cfg.episodes):
         obs = env.reset()
         done = False
         success = 0.0
         collision = 0.0
         ep_return = 0.0
         steps = 0
+        frames = []
 
         h = torch.zeros(1, model_cfg.rssm.deter_dim, device=device)
         z = torch.zeros(1, model_cfg.rssm.stoch_dim, device=device)
@@ -121,15 +145,24 @@ def main(cfg):
         while not done:
             imgs = [obs[k] for k in cfg.task.image_keys]
             img = np.concatenate(imgs, axis=-1)
+            if cfg.eval.get("save_video", False):
+                frames.append(img.copy())
             img = torch.tensor(img).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
-
-            low = _obs_to_lowdim(obs, cfg.task.get("lowdim_keys", []))
-            if low is not None:
-                low = normalize(low.to(device), low_mean, low_std).unsqueeze(0)
-
-            obs_embed = wm.encode_obs(img.unsqueeze(0), low.unsqueeze(0) if low is not None else None)
-            state = wm.rssm.observe_step(obs_embed.squeeze(1), prev_action, {"h": h, "z": z})
-            h, z = state["h"], state["z"]
+            block_active = _sensor_block_active(steps, cfg.eval)
+            if block_active and cfg.eval.sensor_block.get("mode", "zero") == "prior":
+                x = torch.cat([z, prev_action], dim=-1)
+                h = wm.rssm.gru(x, h)
+                prior_params = wm.rssm.prior_net(h)
+                prior_mean, prior_std = wm.rssm._get_stats(prior_params)
+                z = wm.rssm._sample(prior_mean, prior_std)
+            else:
+                img = _apply_sensor_block(img, steps, cfg.eval)
+                low = _obs_to_lowdim(obs, cfg.task.get("lowdim_keys", []))
+                if low is not None:
+                    low = normalize(low.to(device), low_mean, low_std).unsqueeze(0)
+                obs_embed = wm.encode_obs(img.unsqueeze(0), low.unsqueeze(0) if low is not None else None)
+                state = wm.rssm.observe_step(obs_embed.squeeze(1), prev_action, {"h": h, "z": z})
+                h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
 
             if mode == "bc_eval":
@@ -169,12 +202,14 @@ def main(cfg):
             "length": steps,
         })
 
+        if cfg.eval.get("save_video", False):
+            video_path = os.path.join(run_dir, f"video_ep{ep}.mp4")
+            save_video(frames, video_path, fps=cfg.eval.get("video_fps", 30))
+
     metrics = summarize_episode_metrics(episodes)
     metrics["avg_return"] = float(np.mean([e["return"] for e in episodes])) if episodes else 0.0
     metrics["avg_length"] = float(np.mean([e["length"] for e in episodes])) if episodes else 0.0
 
-    run_dir = os.path.join(cfg.run_dir, cfg.exp_name)
-    os.makedirs(run_dir, exist_ok=True)
     with open(os.path.join(run_dir, "image_diffusion_metrics.json"), "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
 
