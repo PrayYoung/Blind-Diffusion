@@ -1,9 +1,16 @@
+defaults:
+  - task: lift
+  - model: rssm_small
+  - diffusion: diffusion_small
+  - _self_
+
 exp_name: eval_diff_lift
 seed: 0
 
 # env
 episodes: 20
 
+# eval
 eval:
   mode: rhc
 
@@ -20,6 +27,7 @@ diff_checkpoint: runs/diff_lift/checkpoints/diffusion_epoch_9.pt
 # paths
 run_dir: runs
 
-# includes
-model: rssm_small
-diffusion: diffusion_small
+hydra:
+  run:
+    dir: .
+  output_subdir: null

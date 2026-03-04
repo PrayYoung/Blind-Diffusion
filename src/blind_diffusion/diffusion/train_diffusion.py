@@ -5,9 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from tqdm import tqdm
-
-from blind_diffusion.utils.hydra import parse_config
+import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.logging import JSONLLogger
@@ -26,20 +24,16 @@ def compute_beliefs(wm: WorldModel, obs: torch.Tensor, actions: torch.Tensor):
     return belief
 
 
-def main():
-    cfg = parse_config()
-    task_cfg = OmegaConf.load(os.path.join("configs/task", f"{cfg.task}.yaml"))
-    model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
-    diff_cfg = OmegaConf.load(os.path.join("configs/diffusion", f"{cfg.diffusion}.yaml"))
-    cfg = OmegaConf.merge(cfg, diff_cfg)
+@hydra.main(version_base=None, config_path="../../configs", config_name="train_diffusion")
+def main(cfg):
 
     set_seed(cfg.seed)
     device = get_device()
 
-    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
+    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     dataset = RoboMimicSequenceDataset(
         hdf5_path=hdf5_path,
-        obs_keys=task_cfg.obs_keys,
+        obs_keys=cfg.task.obs_keys,
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
     )
@@ -49,14 +43,14 @@ def main():
     act_dim = dataset[0]["actions"].shape[-1]
 
     # load frozen world model
-    wm = WorldModel(obs_dim, act_dim, model_cfg).to(device)
+    wm = WorldModel(obs_dim, act_dim, cfg.model).to(device)
     ckpt = load_checkpoint(cfg.wm_checkpoint, map_location=device)
     wm.load_state_dict(ckpt["model"])
     wm.eval()
     for p in wm.parameters():
         p.requires_grad = False
 
-    cond_dim = model_cfg.rssm.deter_dim + model_cfg.rssm.stoch_dim
+    cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
     unet = UNet1D(act_dim, cfg.horizon, cond_dim, base_ch=cfg.base_ch).to(device)
     diffusion = GaussianDiffusion(unet, timesteps=cfg.timesteps, schedule=cfg.schedule).to(device)
 
@@ -101,7 +95,7 @@ def main():
             {
                 "model": diffusion.state_dict(),
                 "config": OmegaConf.to_container(cfg, resolve=True),
-                "task": OmegaConf.to_container(task_cfg, resolve=True),
+                "task": OmegaConf.to_container(cfg.task, resolve=True),
             },
         )
 

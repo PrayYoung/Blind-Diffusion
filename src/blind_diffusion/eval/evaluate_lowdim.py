@@ -4,8 +4,7 @@ import torch
 from omegaconf import OmegaConf
 import numpy as np
 import robomimic.utils.obs_utils as ObsUtils
-
-from blind_diffusion.utils.hydra import parse_config
+import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.metrics import summarize_episode_metrics
@@ -37,19 +36,15 @@ def _denormalize(x: torch.Tensor, mean, std):
     return x * std_t + mean_t
 
 
-def main():
-    cfg = parse_config()
-    task_cfg = OmegaConf.load(os.path.join("configs/task", f"{cfg.task}.yaml"))
-    planner_name = cfg.planner
-    planner_cfg = OmegaConf.load(os.path.join("configs/planner", f"{planner_name}.yaml"))
-    cfg = OmegaConf.merge(cfg, planner_cfg)
+@hydra.main(version_base=None, config_path="../../configs", config_name="eval_mpc")
+def main(cfg):
     set_seed(cfg.seed)
 
-    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
+    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     env = make_env(hdf5_path)
 
-    rgb_keys = [k for k in task_cfg.obs_keys if "rgb" in k.lower() or "image" in k.lower()]
-    low_dim_keys = [k for k in task_cfg.obs_keys if k not in rgb_keys]
+    rgb_keys = [k for k in cfg.task.obs_keys if "rgb" in k.lower() or "image" in k.lower()]
+    low_dim_keys = [k for k in cfg.task.obs_keys if k not in rgb_keys]
 
     ObsUtils.initialize_obs_utils_with_obs_specs({
         "obs": {
@@ -62,18 +57,17 @@ def main():
     if mode == "bc_train":
         run_dir = os.path.join(cfg.run_dir, cfg.exp_name)
         os.makedirs(run_dir, exist_ok=True)
-        train_bc(cfg, task_cfg, run_dir)
+        train_bc(cfg, cfg.task, run_dir)
         return
 
     device = get_device()
     ckpt = load_checkpoint(cfg.checkpoint, map_location=device)
 
     dummy_obs = env.reset()
-    obs_dim = sum([dummy_obs[k].shape[0] for k in task_cfg.obs_keys])
+    obs_dim = sum([dummy_obs[k].shape[0] for k in low_dim_keys])
     action_dim = env.action_dimension
 
-    model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
-    wm = WorldModel(obs_dim, action_dim, model_cfg).to(device)
+    wm = WorldModel(obs_dim, action_dim, cfg.model).to(device)
     wm.load_state_dict(ckpt["model"])
     wm.eval()
 
@@ -105,7 +99,7 @@ def main():
             success = 0.0
             collision = 0.0
             while not done:
-                obs_vec = _obs_to_vec(obs, task_cfg.obs_keys).to(device)
+                obs_vec = _obs_to_vec(obs, low_dim_keys).to(device)
                 obs_vec = _normalize(obs_vec, obs_mean, obs_std)
                 action = bc(obs_vec).detach()
                 action_env = _denormalize(action, act_mean, act_std)
@@ -141,7 +135,7 @@ def main():
             collision = 0.0
 
             # initial latent via a single-step posterior
-            obs_vec = _obs_to_vec(obs, task_cfg.obs_keys).unsqueeze(0).unsqueeze(0).to(device)
+            obs_vec = _obs_to_vec(obs, low_dim_keys).unsqueeze(0).unsqueeze(0).to(device)
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             act_zero = torch.zeros(1, 1, action_dim, device=device)
             post = wm.rssm.observe(wm.encoder(obs_vec_n), act_zero)
@@ -153,7 +147,7 @@ def main():
                 action_env = torch.clamp(action_env, action_low, action_high).detach().cpu().numpy()
                 obs, reward, done, info = env.step(action_env)
 
-                obs_vec = _obs_to_vec(obs, task_cfg.obs_keys).unsqueeze(0).unsqueeze(0).to(device)
+                obs_vec = _obs_to_vec(obs, low_dim_keys).unsqueeze(0).unsqueeze(0).to(device)
                 obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
                 act_t = action_n.float().unsqueeze(0).unsqueeze(0).to(device)
                 post = wm.rssm.observe(wm.encoder(obs_vec_n), act_t)

@@ -7,6 +7,7 @@ readme = "README.md"
 dependencies = [
   "numpy",
   "pyyaml",
+  "hydra-core",
   "omegaconf",
   "torch",
   "h5py",

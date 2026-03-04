@@ -1,3 +1,8 @@
+defaults:
+  - task: lift
+  - model: rssm_small
+  - _self_
+
 exp_name: wm_lift
 seed: 0
 
@@ -21,5 +26,7 @@ kl_scale: 1.0
 # paths
 run_dir: runs
 
-# includes
-model: rssm_small
+hydra:
+  run:
+    dir: .
+  output_subdir: null

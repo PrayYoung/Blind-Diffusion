@@ -1,18 +1,20 @@
+defaults:
+  - task: lift
+  - model: rssm_small
+  - planner: cem
+  - _self_
+
 exp_name: eval_lift
 seed: 0
 
 # dataset/model
 checkpoint: runs/wm_lift/checkpoints/best.pt
-model: rssm_small
 seq_len: 50
 burn_in: 5
 
 # env
 episodes: 20
 render: false
-
-# planner
-planner: cem
 
 # eval
 eval:
@@ -27,3 +29,8 @@ log_every: 100
 
 # paths
 run_dir: runs
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null

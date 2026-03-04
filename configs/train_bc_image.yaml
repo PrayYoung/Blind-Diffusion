@@ -1,3 +1,7 @@
+defaults:
+  - task: lift
+  - _self_
+
 exp_name: bc_image_lift
 seed: 0
 
@@ -13,3 +17,8 @@ embed_dim: 256
 hidden_dim: 256
 
 run_dir: runs
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null

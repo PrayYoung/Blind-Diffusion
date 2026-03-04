@@ -3,8 +3,7 @@ import json
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-
-from blind_diffusion.utils.hydra import parse_config
+import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.metrics import summarize_episode_metrics
@@ -34,23 +33,19 @@ def _denormalize(x: torch.Tensor, mean, std):
     return x * std_t + mean_t
 
 
-def main():
-    cfg = parse_config()
-    task_cfg = OmegaConf.load(os.path.join("configs/task", f"{cfg.task}.yaml"))
-    model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
-    diff_cfg = OmegaConf.load(os.path.join("configs/diffusion", f"{cfg.diffusion}.yaml"))
-    cfg = OmegaConf.merge(cfg, diff_cfg)
+@hydra.main(version_base=None, config_path="../../configs", config_name="eval_diffusion")
+def main(cfg):
 
     set_seed(cfg.seed)
     device = get_device()
 
-    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
+    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     env = make_env(hdf5_path)
 
     # world model
-    obs_dim = sum([env.observation_space[k].shape[0] for k in task_cfg.obs_keys])
+    obs_dim = sum([env.observation_space[k].shape[0] for k in cfg.task.obs_keys])
     act_dim = env.action_space.shape[0]
-    wm = WorldModel(obs_dim, act_dim, model_cfg).to(device)
+    wm = WorldModel(obs_dim, act_dim, cfg.model).to(device)
     wm_ckpt = load_checkpoint(cfg.wm_checkpoint, map_location=device)
     wm.load_state_dict(wm_ckpt["model"])
     wm.eval()
@@ -61,7 +56,7 @@ def main():
     act_std = norm.get("act_std")
 
     # diffusion
-    cond_dim = model_cfg.rssm.deter_dim + model_cfg.rssm.stoch_dim
+    cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
     unet = UNet1D(act_dim, cfg.horizon, cond_dim, base_ch=cfg.base_ch).to(device)
     diff = GaussianDiffusion(unet, timesteps=cfg.timesteps, schedule=cfg.schedule).to(device)
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
@@ -85,7 +80,7 @@ def main():
         open_loop_plan = None
         open_loop_idx = 0
         while not done:
-            obs_vec = _obs_to_vec(obs, task_cfg.obs_keys).unsqueeze(0).to(device)
+            obs_vec = _obs_to_vec(obs, cfg.task.obs_keys).unsqueeze(0).to(device)
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
 

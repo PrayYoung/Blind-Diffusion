@@ -116,6 +116,10 @@ This section applies to both local and Docker runs. For Docker, mount your datas
 ```bash
 export ROBO_DATA=/path/to/robomimic/datasets
 ```
+Override task dataset path (Hydra):
+```bash
+uv run python scripts/train_wm.py task=lift task.hdf5_name=lift/low_dim_v141.hdf5
+```
 Example download:
 ```bash
 mkdir -p ./robomimic_datasets
@@ -133,55 +137,55 @@ export ROBO_DATA=./robomimic_datasets
 ## ✅ Run Order (Minimal)
 1. Train world model (low-dim):
 ```bash
-uv run python scripts/train_wm.py --config configs/train_world_model.yaml task=lift
+uv run python scripts/train_wm.py task=lift
 ```
 2. Evaluate MPC:
 ```bash
-uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=mpc
+uv run python scripts/eval.py task=lift eval.mode=mpc
 ```
 3. Train diffusion (Milestone 2):
 ```bash
-uv run python scripts/train_diffusion.py --config configs/train_diffusion.yaml task=lift
+uv run python scripts/train_diffusion.py task=lift
 ```
 4. Evaluate diffusion (RHC):
 ```bash
-uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml task=lift
+uv run python scripts/eval_diffusion.py task=lift
 ```
 ---
 
 ## 🧪 Optional Baselines
 BC (low-dim):
 ```bash
-uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_train
-uv run python scripts/eval.py --config configs/eval_mpc.yaml task=lift eval.mode=bc_eval
+uv run python scripts/eval.py task=lift eval.mode=bc_train
+uv run python scripts/eval.py task=lift eval.mode=bc_eval
 ```
 Diffusion open-loop:
 ```bash
-uv run python scripts/eval_diffusion.py --config configs/eval_diffusion.yaml task=lift eval.mode=open_loop
+uv run python scripts/eval_diffusion.py task=lift eval.mode=open_loop
 ```
 Image BC:
 ```bash
-uv run python scripts/train_bc_image.py --config configs/train_bc_image.yaml task=lift
-uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_bc_eval
+uv run python scripts/train_bc_image.py task=lift
+uv run python scripts/eval.py task=lift eval.mode=image_bc_eval
 ```
 ---
 
 ## 👁 Milestone 3 (Images)
 1. Train image world model:
 ```bash
-uv run python scripts/train_wm_image.py --config configs/train_world_model_image.yaml task=lift
+uv run python scripts/train_wm_image.py task=lift
 ```
 2. Train image diffusion:
 ```bash
-uv run python scripts/train_diffusion_image.py --config configs/train_diffusion_image.yaml task=lift
+uv run python scripts/train_diffusion_image.py task=lift
 ```
 3. Evaluate image diffusion (RHC):
 ```bash
-uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_rhc
+uv run python scripts/eval.py task=lift eval.mode=image_rhc
 ```
 Open-loop image diffusion:
 ```bash
-uv run python scripts/eval.py --config configs/eval_image.yaml task=lift eval.mode=image_open_loop
+uv run python scripts/eval.py task=lift eval.mode=image_open_loop
 ```
 ---
 

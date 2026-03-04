@@ -4,8 +4,7 @@ import warnings
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-
-from blind_diffusion.utils.hydra import parse_config
+import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.metrics import summarize_episode_metrics
@@ -40,25 +39,21 @@ def _obs_to_lowdim(obs, keys):
     return torch.cat([torch.tensor(obs[k]).float() for k in keys], dim=-1)
 
 
-def main():
-    cfg = parse_config()
-    task_cfg = OmegaConf.load(os.path.join("configs/task", f"{cfg.task}.yaml"))
-    model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
-    diff_cfg = OmegaConf.load(os.path.join("configs/diffusion", f"{cfg.diffusion}.yaml"))
-    cfg = OmegaConf.merge(cfg, diff_cfg)
+@hydra.main(version_base=None, config_path="../../configs", config_name="eval_image")
+def main(cfg):
 
     set_seed(cfg.seed)
     device = get_device()
 
-    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
+    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     env = make_env(hdf5_path)
 
     # world model
     act_dim = env.action_space.shape[0]
-    image_ch = len(task_cfg.image_keys) * 3
-    lowdim_dim = sum([env.observation_space[k].shape[0] for k in task_cfg.get("lowdim_keys", [])]) if task_cfg.get("lowdim_keys") else 0
+    image_ch = len(cfg.task.image_keys) * 3
+    lowdim_dim = sum([env.observation_space[k].shape[0] for k in cfg.task.get("lowdim_keys", [])]) if cfg.task.get("lowdim_keys") else 0
 
-    wm = WorldModelImage(image_ch, lowdim_dim, act_dim, model_cfg).to(device)
+    wm = WorldModelImage(image_ch, lowdim_dim, act_dim, cfg.model).to(device)
     wm_ckpt = load_checkpoint(cfg.wm_checkpoint, map_location=device)
     wm.load_state_dict(wm_ckpt["model"])
     wm.eval()
@@ -69,7 +64,7 @@ def main():
     act_std = norm.get("act_std")
 
     # diffusion
-    cond_dim = model_cfg.rssm.deter_dim + model_cfg.rssm.stoch_dim
+    cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
     unet = UNet1D(act_dim, cfg.horizon, cond_dim, base_ch=cfg.base_ch).to(device)
     diff = GaussianDiffusion(unet, timesteps=cfg.timesteps, schedule=cfg.schedule).to(device)
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
@@ -92,6 +87,8 @@ def main():
 
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
+    if mode.startswith("image_"):
+        mode = mode.replace("image_", "", 1)
 
     bc_policy = None
     if mode == "bc_eval":
@@ -122,11 +119,11 @@ def main():
         open_loop_idx = 0
 
         while not done:
-            imgs = [obs[k] for k in task_cfg.image_keys]
+            imgs = [obs[k] for k in cfg.task.image_keys]
             img = np.concatenate(imgs, axis=-1)
             img = torch.tensor(img).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
 
-            low = _obs_to_lowdim(obs, task_cfg.get("lowdim_keys", []))
+            low = _obs_to_lowdim(obs, cfg.task.get("lowdim_keys", []))
             if low is not None:
                 low = normalize(low.to(device), low_mean, low_std).unsqueeze(0)
 

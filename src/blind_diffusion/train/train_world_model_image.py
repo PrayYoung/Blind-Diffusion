@@ -5,8 +5,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 from omegaconf import OmegaConf
-
-from blind_diffusion.utils.hydra import parse_config
+import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.logging import JSONLLogger
@@ -94,12 +93,12 @@ def compute_loss(batch, model: WorldModelImage, burn_in: int, kl_free_bits: floa
     }
 
 
-def build_loaders(cfg, task_cfg):
-    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), task_cfg.hdf5_name)
+def build_loaders(cfg):
+    hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     dataset = RoboMimicImageSequenceDataset(
         hdf5_path=hdf5_path,
-        image_keys=task_cfg.image_keys,
-        lowdim_keys=task_cfg.get("lowdim_keys", []),
+        image_keys=cfg.task.image_keys,
+        lowdim_keys=cfg.task.get("lowdim_keys", []),
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
         augment=cfg.get("augment", False),
@@ -114,15 +113,14 @@ def build_loaders(cfg, task_cfg):
     return dataset, train_loader, val_loader
 
 
-def main():
-    cfg = parse_config()
-    task_cfg = OmegaConf.load(os.path.join("configs/task", f"{cfg.task}.yaml"))
-    model_cfg = OmegaConf.load(os.path.join("configs/model", f"{cfg.model}.yaml"))
+@hydra.main(version_base=None, config_path="../../configs", config_name="train_world_model_image")
+def main(cfg):
+    model_cfg = cfg.model
 
     set_seed(cfg.seed)
     device = get_device()
 
-    dataset, train_loader, val_loader = build_loaders(cfg, task_cfg)
+    dataset, train_loader, val_loader = build_loaders(cfg)
     image_ch = dataset[0]["images"].shape[1]
     lowdim_dim = dataset[0].get("lowdim").shape[-1] if "lowdim" in dataset[0] else 0
     action_dim = dataset[0]["actions"].shape[-1]
@@ -165,7 +163,7 @@ def main():
                     {
                         "model": model.state_dict(),
                         "config": OmegaConf.to_container(cfg, resolve=True),
-                        "task": OmegaConf.to_container(task_cfg, resolve=True),
+                        "task": OmegaConf.to_container(cfg.task, resolve=True),
                         "norm": dataset.get_norm_stats(),
                     },
                 )

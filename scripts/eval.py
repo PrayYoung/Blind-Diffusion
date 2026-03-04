@@ -4,11 +4,9 @@ import sys
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, required=True)
+    parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("overrides", nargs="*")
-    args = parser.parse_args()
-
+    args, _ = parser.parse_known_args()
     mode = None
     for o in args.overrides:
         if o.startswith("eval.mode="):

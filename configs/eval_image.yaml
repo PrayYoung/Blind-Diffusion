@@ -1,3 +1,9 @@
+defaults:
+  - task: lift
+  - model: rssm_image_small
+  - diffusion: diffusion_small
+  - _self_
+
 exp_name: eval_image_lift
 seed: 0
 
@@ -21,6 +27,7 @@ run_dir: runs
 eval:
   mode: image_rhc
 
-# includes
-model: rssm_image_small
-diffusion: diffusion_small
+hydra:
+  run:
+    dir: .
+  output_subdir: null
