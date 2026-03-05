@@ -1,5 +1,5 @@
 defaults:
-  - task: lift
+  - task: lift_image
   - model: rssm_image_small
   - diffusion: diffusion_demo
   - _self_
@@ -9,6 +9,7 @@ seed: 0
 
 # env
 episodes: 20
+max_steps: 500
 
 # checkpoints
 wm_checkpoint: runs/wm_image_lift/checkpoints/best.pt

@@ -82,6 +82,8 @@ def main(cfg):
     action_low = torch.tensor(-np.ones(action_dim), device=device, dtype=torch.float32)
     action_high = torch.tensor(np.ones(action_dim), device=device, dtype=torch.float32)
 
+    max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
+
     if mode == "bc_eval":
         bc = BCPolicy(obs_dim, action_dim).to(device)
         bc_ckpt = load_checkpoint(os.path.join(cfg.run_dir, cfg.exp_name, "checkpoints/bc.pt"), map_location=device)
@@ -99,7 +101,8 @@ def main(cfg):
             done = False
             success = 0.0
             collision = 0.0
-            while not done:
+            steps = 0
+            while not done and steps < max_steps:
                 obs_vec = _obs_to_vec(obs, low_dim_keys).to(device)
                 obs_vec = _normalize(obs_vec, obs_mean, obs_std)
                 action = bc(obs_vec).detach()
@@ -110,6 +113,7 @@ def main(cfg):
                     success = 1.0
                 if info.get("collision", False) or info.get("violation", False):
                     collision = 1.0
+                steps += 1
             episodes.append({"success": success, "collision": collision})
     elif mode == "random":
         policy = RandomPolicy(action_dim, low=float(action_low.min()), high=float(action_high.max()))
@@ -119,13 +123,15 @@ def main(cfg):
             done = False
             success = 0.0
             collision = 0.0
-            while not done:
+            steps = 0
+            while not done and steps < max_steps:
                 action_env = policy(None).numpy()
                 obs, reward, done, info = env.step(action_env)
                 if info.get("success", False):
                     success = 1.0
                 if info.get("collision", False) or info.get("violation", False):
                     collision = 1.0
+                steps += 1
             episodes.append({"success": success, "collision": collision})
     else:
         episodes = []
@@ -142,7 +148,8 @@ def main(cfg):
             post = wm.rssm.observe(wm.encoder(obs_vec_n), act_zero)
             state = {"h": post["h"][:, -1], "z": post["z"][:, -1]}
 
-            while not done:
+            steps = 0
+            while not done and steps < max_steps:
                 action_n = planner.plan(state, wm, cfg.planner.terminal_penalty, cfg.planner.constraint_penalty)
                 action_env = _denormalize(action_n, act_mean, act_std)
                 action_env = torch.clamp(action_env, action_low, action_high).detach().cpu().numpy()
@@ -158,6 +165,7 @@ def main(cfg):
                     success = 1.0
                 if info.get("collision", False) or info.get("violation", False):
                     collision = 1.0
+                steps += 1
 
             episodes.append({"success": success, "collision": collision})
 

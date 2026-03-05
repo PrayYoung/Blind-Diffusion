@@ -129,6 +129,7 @@ def main(cfg):
         low_std = bc_norm.get("low_std", low_std)
 
     warned_proxy = False
+    max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
     for ep in tqdm(range(cfg.episodes), desc="eval_image", leave=True):
         obs = env.reset()
         done = False
@@ -145,7 +146,7 @@ def main(cfg):
         open_loop_plan = None
         open_loop_idx = 0
 
-        while not done:
+        while not done and steps < max_steps:
             imgs = [obs[k] for k in cfg.task.image_keys]
             img = np.concatenate(imgs, axis=-1)
             if cfg.eval.get("save_video", False):

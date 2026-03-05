@@ -66,6 +66,7 @@ def main(cfg):
     diff.load_state_dict(diff_ckpt["model"])
     diff.eval()
 
+    max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
     for _ in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
@@ -82,7 +83,7 @@ def main(cfg):
 
         open_loop_plan = None
         open_loop_idx = 0
-        while not done:
+        while not done and steps < max_steps:
             obs_vec = _obs_to_vec(obs, cfg.task.obs_keys).unsqueeze(0).to(device)
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
@@ -91,14 +92,14 @@ def main(cfg):
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
             if mode == "open_loop":
-                if open_loop_plan is None or open_loop_idx >= cfg.horizon:
-                    open_loop_plan = diff.sample((1, act_dim, cfg.horizon), belief)
+                if open_loop_plan is None or open_loop_idx >= cfg.diffusion.horizon:
+                    open_loop_plan = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
                     open_loop_idx = 0
                 action = open_loop_plan[:, :, open_loop_idx]
                 open_loop_idx += 1
             else:
-            seq = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
-            action = seq[:, :, 0]
+                seq = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
+                action = seq[:, :, 0]
 
             action_env = _denormalize(action, act_mean, act_std)
             action_np = action_env.squeeze(0).detach().cpu().numpy()

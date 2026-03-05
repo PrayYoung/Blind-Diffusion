@@ -126,6 +126,10 @@ This section applies to both local and Docker runs. For Docker, mount your datas
 ```bash
 export ROBO_DATA=/path/to/robomimic/datasets
 ```
+Eval step limit:
+```bash
+uv run python scripts/eval.py task=lift eval.mode=mpc max_steps=500
+```
 Override task dataset path (Hydra):
 ```bash
 uv run python scripts/train_wm.py task=lift task.hdf5_name=lift/low_dim_v141.hdf5
@@ -175,31 +179,31 @@ uv run python scripts/eval_diffusion.py task=lift eval.mode=open_loop
 ```
 Image BC:
 ```bash
-uv run python scripts/train_bc_image.py task=lift
-uv run python scripts/eval.py task=lift eval.mode=image_bc_eval
+uv run python scripts/train_bc_image.py task=lift_image
+uv run python scripts/eval.py task=lift_image eval.mode=image_bc_eval
 ```
 ---
 
 ## 👁 Milestone 3 (Images)
 1. Train image world model:
 ```bash
-uv run python scripts/train_wm_image.py task=lift
+uv run python scripts/train_wm_image.py task=lift_image
 ```
 2. Train image diffusion:
 ```bash
-uv run python scripts/train_diffusion_image.py task=lift
+uv run python scripts/train_diffusion_image.py task=lift_image
 ```
 3. Evaluate image diffusion (RHC):
 ```bash
-uv run python scripts/eval.py task=lift eval.mode=image_rhc
+uv run python scripts/eval.py task=lift_image eval.mode=image_rhc
 ```
 Open-loop image diffusion:
 ```bash
-uv run python scripts/eval.py task=lift eval.mode=image_open_loop
+uv run python scripts/eval.py task=lift_image eval.mode=image_open_loop
 ```
 Sensor-block demo (image eval):
 ```bash
-uv run python scripts/eval.py task=lift eval.mode=image_rhc \
+uv run python scripts/eval.py task=lift_image eval.mode=image_rhc \
   eval.save_video=true eval.sensor_block.enable=true eval.sensor_block.mode=prior
 ```
 Diffusion config preset:

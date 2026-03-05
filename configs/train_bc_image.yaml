@@ -1,5 +1,5 @@
 defaults:
-  - task: lift
+  - task: lift_image
   - _self_
 
 exp_name: bc_image_lift
