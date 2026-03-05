@@ -1,10 +1,8 @@
 import os
 import json
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from omegaconf import OmegaConf
 
 from blind_diffusion.data.robomimic_dataset import RoboMimicSequenceDataset
 from blind_diffusion.models.modules import mlp

@@ -3,7 +3,6 @@ import json
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from omegaconf import OmegaConf
 
 from blind_diffusion.data.robomimic_dataset_image import RoboMimicImageSequenceDataset
 from blind_diffusion.models.vision_encoder import SmallResNet

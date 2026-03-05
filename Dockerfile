@@ -29,7 +29,7 @@ RUN uv pip install -e ".[robomimic]"
 COPY . .
 
 # 7) env for robosuite
-ENV MUJOCO_GL=osmesa
-ENV PYOPENGL_PLATFORM=osmesa
+ENV MUJOCO_GL=egl
+ENV PYOPENGL_PLATFORM=egl
 
 CMD ["/bin/bash"]

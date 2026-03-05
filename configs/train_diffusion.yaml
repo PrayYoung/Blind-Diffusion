@@ -1,7 +1,7 @@
 defaults:
   - task: lift
   - model: rssm_small
-  - diffusion: diffusion_small
+  - diffusion: diffusion_demo
   - _self_
 
 exp_name: diff_lift
@@ -12,12 +12,6 @@ seq_len: 50
 burn_in: 5
 batch_size: 64
 num_workers: 4
-
-# diffusion
-horizon: 8
-base_ch: 64
-timesteps: 100
-schedule: cosine
 
 # optimization
 lr: 1.0e-4

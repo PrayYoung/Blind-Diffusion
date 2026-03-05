@@ -1,0 +1,5 @@
+diffusion:
+  horizon: 16
+  base_ch: 128
+  timesteps: 200
+  schedule: cosine

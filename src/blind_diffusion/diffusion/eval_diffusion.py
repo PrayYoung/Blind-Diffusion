@@ -58,8 +58,10 @@ def main(cfg):
 
     # diffusion
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
-    unet = UNet1D(act_dim, cfg.horizon, cond_dim, base_ch=cfg.base_ch).to(device)
-    diff = GaussianDiffusion(unet, timesteps=cfg.timesteps, schedule=cfg.schedule).to(device)
+    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch).to(device)
+    diff = GaussianDiffusion(
+        unet, timesteps=cfg.diffusion.timesteps, schedule=cfg.diffusion.schedule
+    ).to(device)
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
     diff.load_state_dict(diff_ckpt["model"])
     diff.eval()
@@ -95,8 +97,8 @@ def main(cfg):
                 action = open_loop_plan[:, :, open_loop_idx]
                 open_loop_idx += 1
             else:
-                seq = diff.sample((1, act_dim, cfg.horizon), belief)
-                action = seq[:, :, 0]
+            seq = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
+            action = seq[:, :, 0]
 
             action_env = _denormalize(action, act_mean, act_std)
             action_np = action_env.squeeze(0).detach().cpu().numpy()

@@ -51,8 +51,10 @@ def main(cfg):
         p.requires_grad = False
 
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
-    unet = UNet1D(act_dim, cfg.horizon, cond_dim, base_ch=cfg.base_ch).to(device)
-    diffusion = GaussianDiffusion(unet, timesteps=cfg.timesteps, schedule=cfg.schedule).to(device)
+    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch).to(device)
+    diffusion = GaussianDiffusion(
+        unet, timesteps=cfg.diffusion.timesteps, schedule=cfg.diffusion.schedule
+    ).to(device)
 
     optim = torch.optim.Adam(diffusion.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
@@ -72,8 +74,10 @@ def main(cfg):
                 belief = compute_beliefs(wm, obs, actions)
 
             B, T, _ = actions.shape
-            t0 = torch.randint(0, T - cfg.horizon + 1, (B,), device=device)
-            target = torch.stack([actions[b, t0[b]: t0[b] + cfg.horizon] for b in range(B)], dim=0)
+            t0 = torch.randint(0, T - cfg.diffusion.horizon + 1, (B,), device=device)
+            target = torch.stack(
+                [actions[b, t0[b]: t0[b] + cfg.diffusion.horizon] for b in range(B)], dim=0
+            )
             cond = torch.stack([belief[b, t0[b]] for b in range(B)], dim=0)
 
             # shape to [B, act_dim, H]

@@ -88,6 +88,16 @@ docker run --rm -it \
   -w /workspace \
   blind-diffusion:latest
 ```
+Render backend:
+- Default in Docker is `MUJOCO_GL=egl`. If you only have CPU/no GPU, use `osmesa` instead:
+```bash
+docker run --rm -it \
+  -e MUJOCO_GL=osmesa \
+  -e PYOPENGL_PLATFORM=osmesa \
+  -v $PWD:/workspace \
+  -w /workspace \
+  blind-diffusion:latest
+```
 ---
 
 ## ⚡ Quickstart (Local)
@@ -191,6 +201,10 @@ Sensor-block demo (image eval):
 ```bash
 uv run python scripts/eval.py task=lift eval.mode=image_rhc \
   eval.save_video=true eval.sensor_block.enable=true eval.sensor_block.mode=prior
+```
+Diffusion config preset:
+```bash
+uv run python scripts/train_diffusion.py task=lift diffusion=diffusion_full
 ```
 ---
 

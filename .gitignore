@@ -29,3 +29,6 @@ checkpoints/
 
 # Legacy
 model/__pycache__/
+
+# logs
+*.log

@@ -89,7 +89,8 @@ def compute_loss(batch, model: WorldModelImage, burn_in: int, kl_free_bits: floa
     kl_loss = kl[:, start:].mean() * kl_scale
 
     # stop-grad target for image embedding
-    vision_loss = mse_loss(vision_pred[:, start:], obs_embed[:, start:].detach())
+    vision_target = obs_embed[:, start:,:vision_pred.shape[-1]].detach()
+    vision_loss = mse_loss(vision_pred[:, start:], vision_target)
     total = reward_loss + done_loss + kl_loss + obs_loss + vision_loss * model.vision_loss_scale
     return total, {
         "loss": total.item(),

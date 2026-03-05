@@ -1,7 +1,7 @@
 defaults:
   - task: lift
   - model: rssm_image_small
-  - diffusion: diffusion_small
+  - diffusion: diffusion_demo
   - _self_
 
 exp_name: eval_image_lift
@@ -9,12 +9,6 @@ seed: 0
 
 # env
 episodes: 20
-
-# diffusion
-horizon: 8
-base_ch: 64
-timesteps: 100
-schedule: cosine
 
 # checkpoints
 wm_checkpoint: runs/wm_image_lift/checkpoints/best.pt
