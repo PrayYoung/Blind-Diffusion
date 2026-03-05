@@ -4,7 +4,6 @@ import warnings
 import numpy as np
 import torch
 from tqdm import tqdm
-from omegaconf import OmegaConf
 import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
@@ -16,6 +15,7 @@ from blind_diffusion.train.train_world_model_image import WorldModelImage
 from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
 from blind_diffusion.baselines.open_loop_bc_image import BCImagePolicy
+import robomimic.utils.obs_utils as ObsUtils
 
 
 def _extract_collision(info: dict) -> float:
@@ -67,12 +67,19 @@ def main(cfg):
     device = get_device()
 
     hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
-    env = make_env(hdf5_path)
-
+    ObsUtils.initialize_obs_utils_with_obs_specs({
+        "obs": {
+            "low_dim":cfg.task.get("lowdim_keys", []),
+            "rgb": cfg.task.get("image_keys", []),
+        }
+    })
+    env = make_env(hdf5_path, image_keys=cfg.task.image_keys, image_size=cfg.task.get("image_size", 84))
+    dummy_obs = env.reset()
     # world model
-    act_dim = env.action_space.shape[0]
+    act_dim = env.action_dimension
     image_ch = len(cfg.task.image_keys) * 3
-    lowdim_dim = sum([env.observation_space[k].shape[0] for k in cfg.task.get("lowdim_keys", [])]) if cfg.task.get("lowdim_keys") else 0
+    lowdim_keys = cfg.task.get("lowdim_keys", [])
+    lowdim_dim = sum([dummy_obs[k].shape[0] for k in lowdim_keys]) if lowdim_keys else 0
 
     wm = WorldModelImage(image_ch, lowdim_dim, act_dim, cfg.model).to(device)
     wm_ckpt = load_checkpoint(cfg.wm_checkpoint, map_location=device)
@@ -139,8 +146,8 @@ def main(cfg):
         steps = 0
         frames = []
 
-        h = torch.zeros(1, model_cfg.rssm.deter_dim, device=device)
-        z = torch.zeros(1, model_cfg.rssm.stoch_dim, device=device)
+        h = torch.zeros(1, cfg.model.rssm.deter_dim, device=device)
+        z = torch.zeros(1, cfg.model.rssm.stoch_dim, device=device)
         prev_action = torch.zeros(1, act_dim, device=device)
 
         open_loop_plan = None

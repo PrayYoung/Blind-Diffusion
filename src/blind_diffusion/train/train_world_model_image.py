@@ -112,6 +112,7 @@ def build_loaders(cfg):
         burn_in=cfg.burn_in,
         augment=cfg.get("augment", False),
         crop_size=cfg.get("crop_size", None),
+        image_size=cfg.task.get("image_size", None),
     )
     val_size = int(len(dataset) * cfg.val_fraction)
     train_size = len(dataset) - val_size

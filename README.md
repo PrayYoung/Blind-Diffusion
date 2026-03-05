@@ -182,6 +182,7 @@ Image BC:
 uv run python scripts/train_bc_image.py task=lift_image
 uv run python scripts/eval.py task=lift_image eval.mode=image_bc_eval
 ```
+Note: image size is controlled by `task.image_size` (train and eval are kept consistent).
 ---
 
 ## 👁 Milestone 3 (Images)

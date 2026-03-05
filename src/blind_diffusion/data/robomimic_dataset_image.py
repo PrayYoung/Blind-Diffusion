@@ -20,6 +20,7 @@ class RoboMimicImageSequenceDataset(Dataset):
         normalize_lowdim: bool = True,
         augment: bool = False,
         crop_size: Optional[int] = None,
+        image_size: Optional[int] = None,
         max_demos: int = None,
     ):
         assert os.path.exists(hdf5_path), f"Missing dataset: {hdf5_path}"
@@ -32,6 +33,7 @@ class RoboMimicImageSequenceDataset(Dataset):
         self.normalize_lowdim = normalize_lowdim
         self.augment = augment
         self.crop_size = crop_size
+        self.image_size = image_size
 
         self._h5 = h5py.File(hdf5_path, "r")
         demo_names = sorted(list(self._h5["data"].keys()))
@@ -110,6 +112,10 @@ class RoboMimicImageSequenceDataset(Dataset):
         images = np.transpose(images, (0, 3, 1, 2))
 
         images_t = torch.from_numpy(images).float()
+        if self.image_size is not None:
+            images_t = torch.nn.functional.interpolate(
+                images_t, size=(self.image_size, self.image_size), mode="bilinear", align_corners=False
+            )
         if self.augment:
             images_t = self._augment(images_t)
 

@@ -1,5 +1,6 @@
 task_name: lift
 hdf5_name: lift/image.hdf5
 image_keys: [agentview_image]
+image_size: 84
 lowdim_keys: [robot0_eef_pos, robot0_eef_quat, robot0_gripper_qpos, object]
 action_dim: 7

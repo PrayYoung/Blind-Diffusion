@@ -22,7 +22,7 @@ def compute_beliefs(wm: WorldModelImage, images: torch.Tensor, actions: torch.Te
     return belief
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="train_diffusion_image")
+@hydra.main(version_base=None, config_path="../../../configs", config_name="train_diffusion_image")
 def main(cfg):
 
     set_seed(cfg.seed)
@@ -35,6 +35,7 @@ def main(cfg):
         lowdim_keys=cfg.task.get("lowdim_keys", []),
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
+        image_size=cfg.task.get("image_size", None),
     )
     loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
 
