@@ -220,6 +220,11 @@ scripts/ — CLI entry points
 src/blind_diffusion/ — core library  
 runs/ — outputs & checkpoints  
 ```
+Key modules:
+- `src/blind_diffusion/train/` — training entrypoints (WM, diffusion, baselines)
+- `src/blind_diffusion/eval/` — evaluation entrypoints (low-dim, diffusion, image)
+- `src/blind_diffusion/diffusion/` — diffusion models and schedulers
+- `src/blind_diffusion/models/` — RSSM + encoders + heads
 ---
 
 ## 🧩 Design Notes
