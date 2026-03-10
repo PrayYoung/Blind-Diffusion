@@ -17,6 +17,6 @@ def make_env(hdf5_path: str, image_keys=None, image_size=84):
         env_meta["env_kwargs"]["camera_widths"] = image_size
     env = create_env_from_metadata(
         env_meta,
-        use_image=use_image,
+        use_image_obj=use_image,
         render_offscreen=use_image)
     return env
