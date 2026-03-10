@@ -27,7 +27,7 @@ class RoboMimicSequenceDataset(Dataset):
         self.normalize_obs = normalize_obs
         self.normalize_action = normalize_action
 
-        self._h5 = h5py.File(hdf5_path, "r")
+        self._h5 = None
         demo_names = sorted(list(self._h5["data"].keys()))
         if max_demos is not None:
             demo_names = demo_names[:max_demos]
@@ -71,6 +71,8 @@ class RoboMimicSequenceDataset(Dataset):
         return len(self.index)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        if self._h5 is None:
+            self._h5 = h5py.File(self.hdf5_path, "r")
         demo, start = self.index[idx]
         end = start + self.seq_len
         obs = self._load_obs(demo)[start:end]

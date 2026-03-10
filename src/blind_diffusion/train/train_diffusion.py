@@ -64,7 +64,7 @@ def main(cfg):
 
     step = 0
     total_steps = cfg.epochs * len(loader)
-    pbar = tqdm(total=total_steps, desc="train_diffusion", leave=True)
+    pbar = tqdm(total=total_steps, desc="train_diffusion", leave=False, dynamic_ncols=True)
     for epoch in range(cfg.epochs):
         for batch in loader:
             obs = batch["obs"].to(device)

@@ -35,7 +35,7 @@ class RoboMimicImageSequenceDataset(Dataset):
         self.crop_size = crop_size
         self.image_size = image_size
 
-        self._h5 = h5py.File(hdf5_path, "r")
+        self._h5 = None
         demo_names = sorted(list(self._h5["data"].keys()))
         if max_demos is not None:
             demo_names = demo_names[:max_demos]
@@ -90,6 +90,8 @@ class RoboMimicImageSequenceDataset(Dataset):
         return len(self.index)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        if self._h5 is None:
+            self._h5 = h5py.File(self.hdf5_path, "r")
         demo, start = self.index[idx]
         end = start + self.seq_len
 

@@ -113,7 +113,7 @@ def main(cfg):
 
     best_val = float("inf")
     step = 0
-    pbar = tqdm(total=cfg.max_steps, desc="train_wm", leave=True)
+    pbar = tqdm(total=cfg.max_steps, desc="train_wm", leave=False, dynamic_ncols=True)
     while step < cfg.max_steps:
         model.train()
         for batch in train_loader:
