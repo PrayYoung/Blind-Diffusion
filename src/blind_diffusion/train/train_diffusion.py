@@ -37,7 +37,10 @@ def main(cfg):
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
     )
-    loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
+    pin = (get_device().type == "cuda")
+    loader = DataLoader(
+        dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, pin_memory=pin
+    )
 
     obs_dim = dataset[0]["obs"].shape[-1]
     act_dim = dataset[0]["actions"].shape[-1]

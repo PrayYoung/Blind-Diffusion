@@ -170,7 +170,7 @@ uv run python scripts/eval_diffusion.py task=lift
 ## 🧪 Optional Baselines
 BC (low-dim):
 ```bash
-uv run python scripts/eval.py task=lift eval.mode=bc_train
+uv run python scripts/train_bc_lowdim.py task=lift
 uv run python scripts/eval.py task=lift eval.mode=bc_eval
 ```
 Diffusion open-loop:

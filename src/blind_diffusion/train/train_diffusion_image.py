@@ -37,7 +37,10 @@ def main(cfg):
         burn_in=cfg.burn_in,
         image_size=cfg.task.get("image_size", None),
     )
-    loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers)
+    pin = (get_device().type == "cuda")
+    loader = DataLoader(
+        dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, pin_memory=pin
+    )
 
     lowdim_dim = dataset[0].get("lowdim").shape[-1] if "lowdim" in dataset[0] else 0
     act_dim = dataset[0]["actions"].shape[-1]

@@ -13,7 +13,7 @@ from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.planner.mpc import build_planner
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.baselines.open_loop_bc import BCPolicy, train_bc
+from blind_diffusion.baselines.open_loop_bc import BCPolicy
 from blind_diffusion.baselines.open_loop_random import RandomPolicy
 
 
@@ -56,10 +56,7 @@ def main(cfg):
 
     mode = cfg.get("eval", {}).get("mode", "mpc")
     if mode == "bc_train":
-        run_dir = os.path.join(cfg.run_dir, cfg.exp_name)
-        os.makedirs(run_dir, exist_ok=True)
-        train_bc(cfg, cfg.task, run_dir)
-        return
+        raise ValueError("bc_train is no longer supported in eval. Use scripts/train_bc_lowdim.py")
 
     device = get_device()
     ckpt = load_checkpoint(cfg.checkpoint, map_location=device)
