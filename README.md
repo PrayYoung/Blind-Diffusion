@@ -215,7 +215,7 @@ uv run python scripts/train_diffusion.py task=lift diffusion=diffusion_full
 
 ## 📁 Project Layout
 ```
-configs/ — experiment & model configs  
+src/blind_diffusion/configs/ — experiment & model configs  
 scripts/ — CLI entry points  
 src/blind_diffusion/ — core library  
 runs/ — outputs & checkpoints  

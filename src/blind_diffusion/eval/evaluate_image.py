@@ -60,7 +60,7 @@ def _apply_sensor_block(img: torch.Tensor, step: int, cfg) -> torch.Tensor:
     return torch.zeros_like(img)
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="eval_image")
+@hydra.main(version_base=None, config_path="../configs", config_name="eval_image")
 def main(cfg):
 
     set_seed(cfg.seed)

@@ -123,7 +123,7 @@ def build_loaders(cfg):
     return dataset, train_loader, val_loader
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="train_world_model_image")
+@hydra.main(version_base=None, config_path="../configs", config_name="train_world_model_image")
 def main(cfg):
     model_cfg = cfg.model
 

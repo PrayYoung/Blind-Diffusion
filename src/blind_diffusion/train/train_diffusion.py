@@ -24,7 +24,7 @@ def compute_beliefs(wm: WorldModel, obs: torch.Tensor, actions: torch.Tensor):
     return belief
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="train_diffusion")
+@hydra.main(version_base=None, config_path="../configs", config_name="train_diffusion")
 def main(cfg):
 
     set_seed(cfg.seed)

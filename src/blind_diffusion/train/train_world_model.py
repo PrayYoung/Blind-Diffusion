@@ -93,9 +93,9 @@ def build_loaders(cfg):
     return dataset, train_loader, val_loader
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="train_world_model")
+@hydra.main(version_base=None, config_path="../configs", config_name="train_world_model")
 def main(cfg):
-    cfg_model = OmegaConf.merge(cfg.model, cfg)
+    cfg_model = cfg.model
 
     set_seed(cfg.seed)
     device = get_device()

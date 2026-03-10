@@ -34,7 +34,7 @@ def _denormalize(x: torch.Tensor, mean, std):
     return x * std_t + mean_t
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="eval_diffusion")
+@hydra.main(version_base=None, config_path="../configs", config_name="eval_diffusion")
 def main(cfg):
 
     set_seed(cfg.seed)

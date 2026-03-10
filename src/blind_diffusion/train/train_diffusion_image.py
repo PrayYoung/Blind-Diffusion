@@ -22,7 +22,7 @@ def compute_beliefs(wm: WorldModelImage, images: torch.Tensor, actions: torch.Te
     return belief
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="train_diffusion_image")
+@hydra.main(version_base=None, config_path="../configs", config_name="train_diffusion_image")
 def main(cfg):
 
     set_seed(cfg.seed)
