@@ -3,7 +3,6 @@ import json
 import numpy as np
 import torch
 from tqdm import tqdm
-from omegaconf import OmegaConf
 import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
@@ -13,6 +12,8 @@ from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model import WorldModel
 from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
+
+import robomimic.utils.obs_utils as ObsUtils
 
 
 def _obs_to_vec(obs, obs_keys):
@@ -43,9 +44,20 @@ def main(cfg):
     hdf5_path = os.path.join(os.environ.get("ROBO_DATA", ""), cfg.task.hdf5_name)
     env = make_env(hdf5_path)
 
+    rgb_keys = [k for k in cfg.task.obs_keys if "rgb" in k.lower() or "image" in k.lower()]
+    low_dim_keys = [k for k in cfg.task.obs_keys if k not in rgb_keys]
+
+    ObsUtils.initialize_obs_utils_with_obs_specs({
+        "obs": {
+            "low_dim": low_dim_keys,
+            "rgb": rgb_keys
+        }
+    })
+
     # world model
-    obs_dim = sum([env.observation_space[k].shape[0] for k in cfg.task.obs_keys])
-    act_dim = env.action_space.shape[0]
+    dummy_obs = env.reset()
+    obs_dim = sum([dummy_obs[k].shape[0] for k in cfg.task.obs_keys])
+    act_dim = env.action_dimension
     wm = WorldModel(obs_dim, act_dim, cfg.model).to(device)
     wm_ckpt = load_checkpoint(cfg.wm_checkpoint, map_location=device)
     wm.load_state_dict(wm_ckpt["model"])
@@ -77,8 +89,8 @@ def main(cfg):
         ep_return = 0.0
         steps = 0
 
-        h = torch.zeros(1, model_cfg.rssm.deter_dim, device=device)
-        z = torch.zeros(1, model_cfg.rssm.stoch_dim, device=device)
+        h = torch.zeros(1, cfg.model.rssm.deter_dim, device=device)
+        z = torch.zeros(1, cfg.model.rssm.stoch_dim, device=device)
         prev_action = torch.zeros(1, act_dim, device=device)
 
         open_loop_plan = None
