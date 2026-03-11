@@ -154,12 +154,18 @@ def main(cfg):
         open_loop_idx = 0
 
         while not done and steps < max_steps:
-            imgs = [obs[k] for k in cfg.task.image_keys]
-            img = np.concatenate(imgs, axis=-1)
+            imgs = []
+            for k in cfg.task.image_keys:
+                frame = obs[k]
+                if frame.shape[0] in [1, 3]:  # CHW -> HWC
+                    frame = np.transpose(frame, (1, 2, 0))
+                imgs.append(frame)
+            img_hwc = np.concatenate(imgs, axis=-1)
             if cfg.eval.get("save_video", False):
-                frames.append(img.copy())
-            img = torch.tensor(img).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
+                frames.append(img_hwc.copy())
+            img = torch.tensor(img_hwc).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
             block_active = _sensor_block_active(steps, cfg.eval)
+            low = None
             if block_active and cfg.eval.sensor_block.get("mode", "zero") == "prior":
                 x = torch.cat([z, prev_action], dim=-1)
                 h = wm.rssm.gru(x, h)
@@ -180,7 +186,7 @@ def main(cfg):
                 action = bc_policy(img, low if low is not None else None)
                 action = action.unsqueeze(0)
             elif mode == "open_loop":
-                if open_loop_plan is None or open_loop_idx >= cfg.horizon:
+                if open_loop_plan is None or open_loop_idx >= cfg.diffusion.horizon:
                     open_loop_plan = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
                     open_loop_idx = 0
                 action = open_loop_plan[:, :, open_loop_idx]
