@@ -145,8 +145,11 @@ Last updated: Friday, August 14, 2026 UTC
     - source installs succeeded with `robomimic 0.4.0` and `robosuite 1.5.1`
     - that stack downloaded `low_dim_v15.hdf5`, not the frozen-protocol `low_dim_v141.hdf5`
     - silently substituting datasets would violate the frozen comparison basis
+  - fifth failure is still engineering-only:
+    - the `v141`-aligned stack works for dataset download, tests, CUDA, and world-model smoke training
+    - the only remaining blocker is `robomimic.env_robosuite` importing `mujoco_py` before rollout
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity using source tags aligned to the `v141` dataset family
+    - retry the same repaired-branch reference protocol with a new run identity after bypassing `robomimic.env_robosuite` and constructing the `robosuite` environment directly from HDF5 `env_args`
 
 ## Best result so far
 

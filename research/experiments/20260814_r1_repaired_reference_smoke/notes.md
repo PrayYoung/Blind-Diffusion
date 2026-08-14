@@ -104,3 +104,22 @@ TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_im
 - install `robosuite` from source tag `v1.4.1`
 - preserve the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+5. `20260814_r1_repaired_reference_smoke_retry4`
+   - failure class: engineering
+   - the source tags now match the frozen `v141` dataset family
+   - dataset download passed
+   - regression tests passed
+   - CUDA runtime was available
+   - world-model smoke training passed
+   - first truthful remaining blocker:
+     - `robomimic.env_robosuite` still imports `mujoco_py`
+     - this fails before the actual rollout starts
+
+## Planned retry 5
+
+- keep the same `robomimic 0.3.0` / `robosuite 1.4.1` source-tag stack
+- bypass `robomimic.env_robosuite` entirely
+- read `env_args` from the HDF5 directly and instantiate `robosuite.make(...)`
+- preserve the same repaired-branch train and eval protocol
+- submit with a new run identity
