@@ -23,6 +23,7 @@ checkpoints/
 
 # Packaging
 *.egg-info/
+build/
 
 # Env
 .env

@@ -1,0 +1,23 @@
+{
+  "experiment_id": "20260814_remote_smoke_r0",
+  "timestamp": "2026-08-14T16:00:00Z",
+  "kind": "remote_smoke",
+  "status": "blocked_requires_user_approval",
+  "git_commit_at_preparation": "863e81e",
+  "git_branch": "codex/blind-diffusion-research-recovery",
+  "artifacts": {
+    "runner_script": "scripts/kaggle_remote_smoke.py",
+    "remote_payload": "kaggle/remote_smoke/remote_smoke.py",
+    "requirements": "requirements-kaggle.txt"
+  },
+  "local_validation": {
+    "py_compile": "passed",
+    "kernel_build": "passed",
+    "kernel_ref": "PrayYoung/blind-diffusion-remote-smoke"
+  },
+  "blocker": {
+    "type": "approval_required",
+    "summary": "Submitting to Kaggle exports a bundled copy of the current repository to an external service and requires explicit user approval.",
+    "source": "tool policy rejection on 2026-08-14"
+  }
+}

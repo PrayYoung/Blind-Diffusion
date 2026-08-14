@@ -99,6 +99,9 @@ Last updated: 2026-08-14 UTC
   - Baseline classified as not executable locally as configured.
   - Two core Antigravity bug claims reproduced locally.
   - Local regression tests now pass for RSSM stepping and dataset lifecycle.
+- `20260814_remote_smoke_r0`
+  - Repo-local Kaggle runner prepared and packaged successfully.
+  - Submission blocked pending explicit approval to export repo contents to Kaggle.
 
 ## Best result so far
 
@@ -111,9 +114,10 @@ Last updated: 2026-08-14 UTC
 2. Dataset paths and local RoboMimic assets are not yet confirmed.
 3. Local environment still lacks `hydra-core` and `robomimic`.
 4. Local machine has no CUDA device, so latency and control-quality claims still require remote execution.
+5. Kaggle submission now requires explicit user approval because the runner exports the current repository snapshot to an external service.
 
 ## Next action
 
-1. Decide whether to vendor the recovered Kaggle workflow into this repository or invoke it directly from the external recovered path.
-2. Enable structured experiment output under `research/experiments/` for actual baseline and ablation runs.
-3. Reproduce `R0` remotely with frozen baseline metadata before broader changes like metrics expansion or DDIM.
+1. If the user approves exporting the repository snapshot to Kaggle, submit `20260814_remote_smoke_r0`.
+2. After smoke success, reproduce `R0` remotely with frozen baseline metadata.
+3. Only then expand metrics, sensor corruption, and DDIM benchmarking.

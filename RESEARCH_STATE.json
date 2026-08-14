@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T12:00:00Z"
+    "updated_at": "2026-08-14T16:00:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -125,6 +125,18 @@
         "research/experiments/20260814_local_diagnostics/metadata.json"
       ],
       "recorded_at": "2026-08-14T12:00:00Z"
+    },
+    {
+      "id": "finding-arch-008",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "A repo-local Kaggle remote smoke runner was vendored and retargeted to Blind-Diffusion on Friday, August 14, 2026. Local syntax and package-build checks passed, but actual Kaggle submission is blocked pending explicit user approval because it exports the current repository snapshot to an external service.",
+      "evidence_refs": [
+        "scripts/kaggle_remote_smoke.py",
+        "kaggle/remote_smoke/remote_smoke.py",
+        "research/experiments/20260814_remote_smoke_r0/metadata.json"
+      ],
+      "recorded_at": "2026-08-14T16:00:00Z"
     }
   ],
   "candidate_next_experiments": [
