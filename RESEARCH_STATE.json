@@ -163,6 +163,19 @@
         ".codex/state/kaggle_jobs/analysis/20260814-r0-baseline-smoke-retry1/analysis.json"
       ],
       "recorded_at": "2026-08-14T03:05:00Z"
+    },
+    {
+      "id": "finding-r1-001",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The first repaired-branch reference run reached remote training successfully but failed at low-dimensional evaluation because src/blind_diffusion/env/robomimic_env.py passed use_image_obj to robomimic.utils.env_utils.create_env_from_metadata. Primary-source robomimic docs expose use_image_obs instead.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke/analysis.json",
+        "https://robomimic.github.io/docs/v0.4/api/robomimic.utils.html"
+      ],
+      "recorded_at": "2026-08-14T03:21:00Z"
     }
   ],
   "candidate_next_experiments": [

@@ -38,3 +38,21 @@ Establish the first executable repaired-branch reference point after `R0` showed
 ## Interpretation guardrail
 
 This run is only an executable repaired-branch reference point. It is not a clean-vs-blind robustness benchmark and not a final quality claim.
+
+## Retry chain on Friday, August 14, 2026
+
+1. `20260814_r1_repaired_reference_smoke`
+   - failure class: engineering
+   - world-model smoke training completed
+   - low-dimensional evaluation failed in `src/blind_diffusion/env/robomimic_env.py`
+   - exact first truthful failure:
+
+```text
+TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_image_obj'
+```
+
+## Planned retry
+
+- fix the `robomimic` compatibility keyword from `use_image_obj` to `use_image_obs`
+- preserve the same train and eval protocol
+- submit with a new run identity

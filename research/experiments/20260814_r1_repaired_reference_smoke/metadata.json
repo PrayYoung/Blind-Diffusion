@@ -2,8 +2,8 @@
   "experiment_id": "20260814_r1_repaired_reference_smoke",
   "timestamp": "2026-08-14T16:20:00Z",
   "kind": "remote_repaired_branch_reference",
-  "status": "planned",
-  "git_commit_under_test": null,
+  "status": "failed_pending_retry",
+  "git_commit_under_test": "4d65612",
   "git_branch": "codex/blind-diffusion-research-recovery",
   "protocol_version": "repaired-reference-v1",
   "frozen_controls": {
@@ -29,5 +29,17 @@
     ]
   },
   "objective": "Establish the first executable repaired-branch world-model-train plus low-dimensional MPC-eval reference point under the recovered Kaggle backend.",
-  "notes": "This is an execution and measurement reference run, not a final benchmark."
+  "notes": "This is an execution and measurement reference run, not a final benchmark.",
+  "retry_chain": [
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "World-model smoke training completed remotely, but low-dimensional evaluation failed because robomimic 0.3.0 rejected the unexpected keyword argument use_image_obj in create_env_from_metadata."
+    }
+  ],
+  "evidence": {
+    "analysis_json": ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke/analysis.json",
+    "job_log_dir": ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke"
+  }
 }

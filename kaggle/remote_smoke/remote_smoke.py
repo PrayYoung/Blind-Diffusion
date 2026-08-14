@@ -273,9 +273,13 @@ def main() -> int:
     }
     try:
         repo_info = _materialize_repo_bundle()
+        result["repo"] = repo_info
         install_info = _install_runtime()
+        result["install"] = install_info
         runtime_info = _probe_runtime()
+        result["runtime"] = runtime_info
         dataset_info = _download_dataset()
+        result["dataset"] = dataset_info
         if not dataset_info["dataset_exists"]:
             raise RuntimeError(
                 "RoboMimic dataset download did not produce lift/low_dim_v141.hdf5.\n"
@@ -283,20 +287,12 @@ def main() -> int:
                 f"stderr:\n{dataset_info['stderr']}"
             )
         unittest_info = _run_unittests()
+        result["unittests"] = unittest_info
         smoke_info = _run_world_model_smoke()
+        result["world_model_smoke"] = smoke_info
         eval_info = _run_lowdim_eval(smoke_info["checkpoint_path"])
-        result.update(
-            {
-                "status": "PASS",
-                "repo": repo_info,
-                "install": install_info,
-                "runtime": runtime_info,
-                "dataset": dataset_info,
-                "unittests": unittest_info,
-                "world_model_smoke": smoke_info,
-                "lowdim_eval_smoke": eval_info,
-            }
-        )
+        result["lowdim_eval_smoke"] = eval_info
+        result["status"] = "PASS"
     except Exception as exc:
         result.update(
             {

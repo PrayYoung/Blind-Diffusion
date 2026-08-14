@@ -124,6 +124,16 @@ Last updated: Friday, August 14, 2026 UTC
     - frozen baseline is not executable under the recovered Kaggle protocol
     - first blocking failure is the dataset constructor dereference of unopened `self._h5`
 
+## Active retry chain
+
+- `20260814_r1_repaired_reference_smoke`
+  - first attempt reached remote training successfully
+  - first failure is engineering-only:
+    - `src/blind_diffusion/env/robomimic_env.py` passed `use_image_obj` to `robomimic`
+    - Kaggle runtime expects `use_image_obs`
+  - next step:
+    - retry the same repaired-branch reference protocol with a new run identity after the compatibility fix
+
 ## Best result so far
 
 - No validated performance result yet.

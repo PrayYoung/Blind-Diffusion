@@ -8,7 +8,7 @@ def make_env(hdf5_path: str, image_keys=None, image_size=84):
     env_meta.setdefault("env_kwargs", {})
     env_meta["env_kwargs"]["controller_configs"] = None
 
-    use_image = None
+    use_image = False
     if image_keys:
         use_image = True
         camera_names = [k.replace("_image", "") for k in image_keys]
@@ -17,6 +17,6 @@ def make_env(hdf5_path: str, image_keys=None, image_size=84):
         env_meta["env_kwargs"]["camera_widths"] = image_size
     env = create_env_from_metadata(
         env_meta,
-        use_image_obj=use_image,
+        use_image_obs=use_image,
         render_offscreen=use_image)
     return env
