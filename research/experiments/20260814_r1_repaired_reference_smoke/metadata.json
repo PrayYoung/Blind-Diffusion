@@ -42,6 +42,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "Dataset download, regression tests, and world-model smoke training passed remotely, but low-dimensional evaluation failed because the Kaggle dependency resolution loaded a robomimic stack that still imports mujoco_py under Python 3.12."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry2",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "A pure version pin to robomimic >= 0.4.0 failed before runtime because Kaggle's PyPI view only exposed robomimic 0.1.0, 0.2.0, and 0.3.0. The next retry must follow the upstream source-install path instead of relying on PyPI."
     }
   ],
   "evidence": {

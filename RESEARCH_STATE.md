@@ -138,8 +138,11 @@ Last updated: Friday, August 14, 2026 UTC
   - second failure is still engineering-only:
     - Kaggle resolved `robomimic 0.3.0`
     - low-dimensional evaluation failed on `ModuleNotFoundError: No module named 'mujoco_py'`
+  - third failure is still engineering-only:
+    - Kaggle PyPI did not expose `robomimic >= 0.4.0`
+    - pip-only version pinning cannot reach the modern stack we need
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity after pinning the DeepMind-MuJoCo-compatible `robomimic` / `robosuite` stack
+    - retry the same repaired-branch reference protocol with a new run identity using upstream-recommended source installs for `robomimic` and `robosuite`
 
 ## Best result so far
 

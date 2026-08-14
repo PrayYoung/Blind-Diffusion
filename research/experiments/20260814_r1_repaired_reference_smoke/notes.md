@@ -69,3 +69,17 @@ TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_im
 - pin the Kaggle and project dependency stack to `robomimic >= 0.4.0, < 0.5` and `robosuite >= 1.5.1, < 1.6`
 - keep the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+3. `20260814_r1_repaired_reference_smoke_retry2`
+   - failure class: engineering
+   - dependency install failed before runtime
+   - Kaggle's PyPI view exposed only `robomimic` versions `0.1.0`, `0.2.0`, and `0.3.0`
+   - `robomimic >= 0.4.0` was therefore not a valid pip-only repair path
+
+## Planned retry 3
+
+- keep `requirements-kaggle.txt` for core wheels only
+- install `robomimic` from Git tag `v0.4`
+- install `robosuite` from Git tag `v1.5.1`
+- preserve the same repaired-branch train and eval protocol
+- submit with a new run identity

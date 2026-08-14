@@ -189,6 +189,18 @@
         "https://github.com/ARISE-Initiative/robosuite/releases"
       ],
       "recorded_at": "2026-08-14T03:28:00Z"
+    },
+    {
+      "id": "finding-r1-003",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The third repaired-branch retry established that a simple PyPI version pin is not viable on Kaggle: the package index visible in that runtime only offered robomimic 0.1.0, 0.2.0, and 0.3.0. Upstream robomimic installation guidance recommends source installation, so the next retry should use exact Git tags rather than unavailable wheel versions.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry2/analysis.json",
+        "https://robomimic.github.io/docs/introduction/installation.html"
+      ],
+      "recorded_at": "2026-08-14T03:35:00Z"
     }
   ],
   "candidate_next_experiments": [
