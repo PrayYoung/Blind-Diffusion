@@ -131,8 +131,15 @@ Last updated: Friday, August 14, 2026 UTC
   - first failure is engineering-only:
     - `src/blind_diffusion/env/robomimic_env.py` passed `use_image_obj` to `robomimic`
     - Kaggle runtime expects `use_image_obs`
+  - second attempt reached further:
+    - dataset download passed
+    - regression tests passed
+    - world-model smoke training passed
+  - second failure is still engineering-only:
+    - Kaggle resolved `robomimic 0.3.0`
+    - low-dimensional evaluation failed on `ModuleNotFoundError: No module named 'mujoco_py'`
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity after the compatibility fix
+    - retry the same repaired-branch reference protocol with a new run identity after pinning the DeepMind-MuJoCo-compatible `robomimic` / `robosuite` stack
 
 ## Best result so far
 

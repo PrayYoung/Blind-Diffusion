@@ -103,6 +103,7 @@ def _probe_runtime() -> dict[str, object]:
     import numpy
     import omegaconf
     import robomimic
+    import robosuite
     import torch
 
     info: dict[str, object] = {
@@ -115,6 +116,7 @@ def _probe_runtime() -> dict[str, object]:
         "h5py": h5py.__version__,
         "numpy": numpy.__version__,
         "robomimic": getattr(robomimic, "__version__", "unknown"),
+        "robosuite": getattr(robosuite, "__version__", "unknown"),
     }
     if torch.cuda.is_available():
         props = torch.cuda.get_device_properties(0)

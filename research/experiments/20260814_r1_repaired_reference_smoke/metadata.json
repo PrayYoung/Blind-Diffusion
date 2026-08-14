@@ -36,6 +36,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "World-model smoke training completed remotely, but low-dimensional evaluation failed because robomimic 0.3.0 rejected the unexpected keyword argument use_image_obj in create_env_from_metadata."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry1",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Dataset download, regression tests, and world-model smoke training passed remotely, but low-dimensional evaluation failed because the Kaggle dependency resolution loaded a robomimic stack that still imports mujoco_py under Python 3.12."
     }
   ],
   "evidence": {

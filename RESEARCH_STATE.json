@@ -176,6 +176,19 @@
         "https://robomimic.github.io/docs/v0.4/api/robomimic.utils.html"
       ],
       "recorded_at": "2026-08-14T03:21:00Z"
+    },
+    {
+      "id": "finding-r1-002",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The second repaired-branch reference attempt confirmed that Kaggle can download data, pass regression tests, and train the low-dimensional world model on commit abfe4d9, but low-dimensional environment rollout still fails because the resolved robomimic 0.3.0 stack imports mujoco_py under Python 3.12. Based on robomimic and robosuite release notes, the next engineering fix is to pin a DeepMind-MuJoCo-compatible stack instead of relying on the unconstrained >=0.3.0 / >=1.4.1 spec.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry1/analysis.json",
+        "https://github.com/ARISE-Initiative/robomimic/releases",
+        "https://github.com/ARISE-Initiative/robosuite/releases"
+      ],
+      "recorded_at": "2026-08-14T03:28:00Z"
     }
   ],
   "candidate_next_experiments": [

@@ -7,5 +7,5 @@ tqdm>=4.67
 scipy>=1.11
 numba>=0.60
 Cython<3.0
-robomimic>=0.3.0
-robosuite>=1.4.1
+robomimic>=0.4.0,<0.5
+robosuite>=1.5.1,<1.6

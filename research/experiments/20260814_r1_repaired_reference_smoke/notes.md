@@ -56,3 +56,16 @@ TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_im
 - fix the `robomimic` compatibility keyword from `use_image_obj` to `use_image_obs`
 - preserve the same train and eval protocol
 - submit with a new run identity
+
+2. `20260814_r1_repaired_reference_smoke_retry1`
+   - failure class: engineering
+   - dataset download passed
+   - regression tests passed
+   - world-model smoke training passed
+   - low-dimensional evaluation failed during environment import because the Kaggle dependency stack resolved to `robomimic 0.3.0`, which imports `mujoco_py`
+
+## Planned retry 2
+
+- pin the Kaggle and project dependency stack to `robomimic >= 0.4.0, < 0.5` and `robosuite >= 1.5.1, < 1.6`
+- keep the same repaired-branch train and eval protocol
+- submit with a new run identity
