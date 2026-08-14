@@ -48,7 +48,6 @@ class EnvMetadataTests(unittest.TestCase):
         self.assertFalse(env_kwargs["use_camera_obs"])
         self.assertFalse(env_kwargs["has_offscreen_renderer"])
         self.assertFalse(env_kwargs["has_renderer"])
-        self.assertFalse(env_kwargs["lite_physics"])
 
     def test_build_robosuite_kwargs_enables_image_obs(self):
         env_meta = {

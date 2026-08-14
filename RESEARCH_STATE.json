@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T03:51:00Z"
+    "updated_at": "2026-08-14T03:58:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -226,6 +226,18 @@
         ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke-retry4/output/result.json"
       ],
       "recorded_at": "2026-08-14T03:51:00Z"
+    },
+    {
+      "id": "finding-r1-006",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The sixth repaired-branch retry verified that direct robosuite construction is the right compatibility path: it bypassed the old mujoco_py wrapper and reached real robosuite environment instantiation. The first truthful remaining blocker is narrower still: robosuite 1.4.1 rejects the lite_physics keyword, so the next retry only needs to remove that one argument.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry5/analysis.json",
+        ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke-retry5/output/result.json"
+      ],
+      "recorded_at": "2026-08-14T03:58:00Z"
     }
   ],
   "candidate_next_experiments": [

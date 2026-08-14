@@ -16,10 +16,6 @@ def _build_robosuite_kwargs(env_meta: dict, image_keys=None, image_size=84) -> t
     env_name = env_meta["env_name"]
     env_kwargs = dict(env_meta.get("env_kwargs", {}))
 
-    # Older robomimic datasets were collected with robosuite <= 1.4.1. Keep
-    # robosuite in compatibility mode instead of using the newer lite physics path.
-    env_kwargs.setdefault("lite_physics", False)
-
     if image_keys:
         camera_names = [k.replace("_image", "") for k in image_keys]
         env_kwargs["use_camera_obs"] = True

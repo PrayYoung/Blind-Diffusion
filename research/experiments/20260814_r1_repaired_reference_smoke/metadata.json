@@ -60,6 +60,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "The v141-aligned source tags restored the correct dataset family, passed regression tests, enabled CUDA, and completed world-model smoke training, but low-dimensional rollout still failed because robomimic.env_robosuite imports mujoco_py. The next retry should bypass that wrapper and construct the robosuite environment directly from dataset env_args."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry5",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Direct robosuite environment construction cleared the mujoco_py blocker, but robosuite 1.4.1 rejected the lite_physics keyword. The next retry should remove that one incompatible argument and keep everything else frozen."
     }
   ],
   "evidence": {

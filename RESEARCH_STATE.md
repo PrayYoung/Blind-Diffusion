@@ -148,8 +148,11 @@ Last updated: Friday, August 14, 2026 UTC
   - fifth failure is still engineering-only:
     - the `v141`-aligned stack works for dataset download, tests, CUDA, and world-model smoke training
     - the only remaining blocker is `robomimic.env_robosuite` importing `mujoco_py` before rollout
+  - sixth failure is still engineering-only:
+    - direct `robosuite.make(...)` bypassed the `mujoco_py` wrapper path
+    - the only remaining blocker is `robosuite 1.4.1` rejecting the `lite_physics` keyword
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity after bypassing `robomimic.env_robosuite` and constructing the `robosuite` environment directly from HDF5 `env_args`
+    - retry the same repaired-branch reference protocol with a new run identity after removing the single incompatible `lite_physics` argument
 
 ## Best result so far
 

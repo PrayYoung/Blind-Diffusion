@@ -123,3 +123,20 @@ TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_im
 - read `env_args` from the HDF5 directly and instantiate `robosuite.make(...)`
 - preserve the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+6. `20260814_r1_repaired_reference_smoke_retry5`
+   - failure class: engineering
+   - direct `robosuite.make(...)` path did bypass the `mujoco_py` wrapper dependency
+   - first truthful remaining blocker:
+
+```text
+TypeError: Lift.__init__() got an unexpected keyword argument 'lite_physics'
+```
+
+## Planned retry 6
+
+- keep the same `robomimic 0.3.0` / `robosuite 1.4.1` source-tag stack
+- keep the same direct `robosuite.make(...)` adapter
+- remove only the incompatible `lite_physics` keyword
+- preserve the same repaired-branch train and eval protocol
+- submit with a new run identity
