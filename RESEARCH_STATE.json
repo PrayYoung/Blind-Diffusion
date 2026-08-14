@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T19:10:00Z"
+    "updated_at": "2026-08-14T19:28:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -251,6 +251,20 @@
         "https://github.com/ARISE-Initiative/robosuite/releases"
       ],
       "recorded_at": "2026-08-14T19:10:00Z"
+    },
+    {
+      "id": "finding-r1-008",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The MuJoCo 2.3.x back-pin failed on Kaggle Python 3.12 before rollout because pip attempted to build mujoco 2.3.7 from source. The direct robosuite.make reconstruction path is now retired. The repository has been redirected back to the original create_env_from_metadata / EnvRobosuite semantics with the smallest local compatibility shim: a stub mujoco_py.builder.MujocoException to satisfy robomimic 0.3.0's unconditional import while keeping native DeepMind MuJoCo 3.x.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry7/analysis.json",
+        ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke-retry7/output/result.json",
+        "https://raw.githubusercontent.com/ARISE-Initiative/robomimic/v0.3.0/robomimic/envs/env_robosuite.py",
+        "https://github.com/ARISE-Initiative/robomimic/releases"
+      ],
+      "recorded_at": "2026-08-14T19:28:00Z"
     }
   ],
   "candidate_next_experiments": [

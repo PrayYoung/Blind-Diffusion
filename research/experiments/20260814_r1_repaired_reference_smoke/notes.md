@@ -162,3 +162,26 @@ AttributeError: 'MjData' object has no attribute 'qM'
 - pin MuJoCo to `>=2.3.0,<3.0`
 - preserve the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+8. `20260814_r1_repaired_reference_smoke_retry7`
+   - failure class: engineering
+   - first truthful remaining blocker moved earlier into dependency installation:
+
+```text
+ERROR: Failed to build installable wheels for some pyproject.toml based projects (mujoco)
+```
+
+   - interpretation:
+     - Kaggle's Python `3.12.13` runtime can install modern native `mujoco` wheels, but not the older `2.3.x` family we tried to force for the direct `robosuite.make(...)` reconstruction
+     - this makes the direct-path MuJoCo back-pin a dead end on the target backend
+     - the exact `robomimic 0.3.0` / `robosuite 1.4.1` wrapper path is still scientifically preferable anyway
+
+## Redirected next attempt
+
+- restore `create_env_from_metadata(...)` / `EnvRobosuite` semantics in `src/blind_diffusion/env/robomimic_env.py`
+- keep `low_dim_v141.hdf5`
+- install native DeepMind `mujoco==3.5.0` with `robosuite==1.4.1`
+- install `robomimic==0.3.0 --no-deps`
+- apply only the smallest local compatibility shim for the unconditional `import mujoco_py` in `robomimic.envs.env_robosuite`
+- preserve the same train and eval protocol
+- submit with a new run identity

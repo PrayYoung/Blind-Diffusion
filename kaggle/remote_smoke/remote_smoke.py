@@ -74,6 +74,30 @@ def _install_runtime() -> dict[str, object]:
             f"stderr:\n{torch_install.stderr}"
         )
 
+    cython_install = _pip_install(["Cython<3.0"])
+    if cython_install.returncode != 0:
+        raise RuntimeError(
+            "Cython install failed.\n"
+            f"stdout:\n{cython_install.stdout}\n"
+            f"stderr:\n{cython_install.stderr}"
+        )
+
+    robosuite_install = _pip_install(["mujoco==3.5.0", "robosuite==1.4.1"])
+    if robosuite_install.returncode != 0:
+        raise RuntimeError(
+            "MuJoCo / robosuite install failed.\n"
+            f"stdout:\n{robosuite_install.stdout}\n"
+            f"stderr:\n{robosuite_install.stderr}"
+        )
+
+    robomimic_install = _pip_install(["robomimic==0.3.0", "--no-deps"])
+    if robomimic_install.returncode != 0:
+        raise RuntimeError(
+            "robomimic install failed.\n"
+            f"stdout:\n{robomimic_install.stdout}\n"
+            f"stderr:\n{robomimic_install.stderr}"
+        )
+
     req_install = _pip_install(["-r", "requirements-kaggle.txt"], cwd=REPO_DIR)
     if req_install.returncode != 0:
         raise RuntimeError(
@@ -82,7 +106,7 @@ def _install_runtime() -> dict[str, object]:
             f"stderr:\n{req_install.stderr}"
         )
 
-    editable_install = _pip_install(['-e', '.[robomimic]'], cwd=REPO_DIR)
+    editable_install = _pip_install(["-e", "."], cwd=REPO_DIR)
     if editable_install.returncode != 0:
         raise RuntimeError(
             "Editable project install failed.\n"
@@ -92,6 +116,9 @@ def _install_runtime() -> dict[str, object]:
 
     return {
         "torch_install_returncode": torch_install.returncode,
+        "cython_install_returncode": cython_install.returncode,
+        "robosuite_install_returncode": robosuite_install.returncode,
+        "robomimic_install_returncode": robomimic_install.returncode,
         "requirements_install_returncode": req_install.returncode,
         "editable_install_returncode": editable_install.returncode,
     }
@@ -105,6 +132,7 @@ def _probe_runtime() -> dict[str, object]:
     import robomimic
     import robosuite
     import torch
+    import mujoco
 
     info: dict[str, object] = {
         "python": platform.python_version(),
@@ -115,6 +143,7 @@ def _probe_runtime() -> dict[str, object]:
         "omegaconf": omegaconf.__version__,
         "h5py": h5py.__version__,
         "numpy": numpy.__version__,
+        "mujoco": mujoco.__version__,
         "robomimic": getattr(robomimic, "__version__", "unknown"),
         "robosuite": getattr(robosuite, "__version__", "unknown"),
     }

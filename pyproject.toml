@@ -13,15 +13,15 @@ dependencies = [
   "h5py",
   "imageio",
   "tqdm",
-  "mujoco>=2.3.0,<3.0",
+  "mujoco==3.5.0",
   "numba",
   "scipy"
 ]
 
 [project.optional-dependencies]
 robomimic = [
-  "robomimic @ git+https://github.com/ARISE-Initiative/robomimic.git@v0.3.0",
-  "robosuite @ git+https://github.com/ARISE-Initiative/robosuite.git@v1.4.1",
+  "robomimic==0.3.0",
+  "robosuite==1.4.1",
   "Cython<3.0",
 ]
 

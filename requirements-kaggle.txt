@@ -7,4 +7,5 @@ tqdm>=4.67
 scipy>=1.11
 numba>=0.60
 Cython<3.0
+mujoco==3.5.0
 mujoco>=2.3.0,<3.0

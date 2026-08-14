@@ -72,6 +72,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "With the lite_physics keyword removed, direct robosuite construction progressed into controller initialization. The first truthful remaining blocker is a MuJoCo runtime mismatch: robosuite 1.4.1 expects the older DeepMind MuJoCo 2.3.x API, but the project metadata still allowed newer MuJoCo 3.x."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry7",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Pinning MuJoCo backward to 2.3.x is not viable on Kaggle's Python 3.12 runtime because pip falls back to a source build of mujoco 2.3.7 and fails before rollout. The direct robosuite.make reconstruction path is therefore retired in favor of the exact robomimic create_env_from_metadata / EnvRobosuite path with a minimal local mujoco_py compatibility stub."
     }
   ],
   "evidence": {

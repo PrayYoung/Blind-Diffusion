@@ -152,11 +152,13 @@ Last updated: Friday, August 14, 2026 UTC
     - direct `robosuite.make(...)` bypassed the `mujoco_py` wrapper path
     - the only remaining blocker is `robosuite 1.4.1` rejecting the `lite_physics` keyword
   - seventh failure is still engineering-only:
-    - the reconstructed environment now reaches robosuite controller initialization
-    - the remaining blocker is a MuJoCo API mismatch at `MjData.qM`
-    - `robosuite v1.4.1` declares `mujoco>=2.3.0`, while this repo had still been allowing a much newer MuJoCo 3.x runtime
-  - next step:
-    - use the final planned compatibility retry to pin MuJoCo to the `2.3.x` family and then stop environment archaeology
+    - pinning MuJoCo back to `2.3.x` on Kaggle Python `3.12.13` fails during dependency installation because `mujoco 2.3.7` falls back to a source build and does not produce a usable wheel there
+    - the direct `robosuite.make(...)` compatibility reconstruction path is now retired
+  - redirected next step:
+    - restore `robomimic.utils.env_utils.create_env_from_metadata(...)` / `EnvRobosuite`
+    - keep the frozen `low_dim_v141.hdf5` dataset family
+    - install native DeepMind `mujoco 3.5.0`, `robosuite 1.4.1`, and `robomimic 0.3.0 --no-deps`
+    - patch only the unconditional `import mujoco_py` import site with a local compatibility stub
 
 ## Best result so far
 
@@ -175,6 +177,6 @@ Last updated: Friday, August 14, 2026 UTC
 
 ## Next action
 
-1. Prepare the smallest repaired-branch train and evaluation run that preserves the frozen low-dimensional protocol.
-2. Record it as the first executable post-repair reference point.
-3. Only after that reference exists should I expand into controlled ablations such as blackout robustness or DDIM speed and quality tradeoffs.
+1. Submit the wrapper-based repaired-branch train and evaluation run that preserves the frozen low-dimensional protocol and the original `EnvRobosuite` semantics.
+2. If rollout executes, freeze that as the compatibility-reconstructed environment and run the matched `E0` vs `R1` comparison next.
+3. Only after `E0` vs `R1` exists should I expand into blackout robustness or DDIM speed and quality tradeoffs.
