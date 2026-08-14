@@ -1,0 +1,10 @@
+[run]
+docker_image = "pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel"
+disk_gb = 80
+loading_timeout_seconds = 900
+max_infra_retries = 2
+sync_paths = ["outputs", "runs", "eval_runs"]
+
+# Keep project-specific dependency installation here so the global vast-run
+# config remains shared across repositories.
+setup_command = "bash scripts/setup_vast_env.sh"

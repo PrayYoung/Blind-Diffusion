@@ -32,7 +32,12 @@ Last updated: Friday, August 14, 2026 UTC
 - Baseline execution artifacts: none discovered yet in the local repository
 - Baseline checkpoints discovered locally: none discovered yet in the local repository
 - Local runtime discovered: `.venv/bin/python` exists, local `uv` binary does not
-- Kaggle remote workflow recovered from: `/Users/peiyan1/Desktop/ai_agent_memory/scripts/kaggle_remote_smoke.py`
+- Active remote backend prepared on Friday, August 14, 2026:
+  - Vast runner via `./infra/vast_run.sh`
+  - repo profile: `.vast/profile.toml`
+  - remote setup script: `scripts/setup_vast_env.sh`
+- Historical Kaggle workflow retained locally for provenance:
+  - `/Users/peiyan1/Desktop/ai_agent_memory/scripts/kaggle_remote_smoke.py`
 - Local executability on Friday, August 14, 2026:
   - `ROBO_DATA` unset
   - no `runs/` directory
@@ -178,9 +183,10 @@ Last updated: Friday, August 14, 2026 UTC
 3. Local environment still lacks `hydra-core` and `robomimic`.
 4. Local machine has no CUDA device, so latency and control-quality claims still require remote execution.
 5. No repaired-branch reference training or evaluation run has been recorded yet, so there is still no executable control-quality reference point.
+6. Vast backend configuration is prepared locally, but no Vast reference run has been launched yet.
 
 ## Next action
 
-1. Submit the wrapper-based repaired-branch train and evaluation run that preserves the frozen low-dimensional protocol and the original `EnvRobosuite` semantics.
+1. Launch the wrapper-based repaired-branch reference run on Vast using `./infra/vast_run.sh` and the repo-local `.vast/profile.toml`.
 2. If rollout executes, freeze that as the compatibility-reconstructed environment and run the matched `E0` vs `R1` comparison next.
 3. Only after `E0` vs `R1` exists should I expand into blackout robustness or DDIM speed and quality tradeoffs.

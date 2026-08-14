@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T19:30:00Z"
+    "updated_at": "2026-08-14T22:40:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -40,13 +40,13 @@
   "active_experiment": {
     "id": "r1-repaired-branch-reference-run",
     "purpose": "Produce the first executable repaired-branch reference run after the frozen baseline has been classified as non-runnable.",
-    "design": "Keep the evaluation protocol frozen, use the already-validated Kaggle backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
-    "backend": "local-plus-kaggle-remote-smoke",
+    "design": "Keep the evaluation protocol frozen, use the repo-local Vast backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
+    "backend": "local-plus-vast-run",
     "state": "planned",
     "job_ref": "",
     "output_ref": "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
     "submitted_at": "2026-08-14T16:20:00Z",
-    "last_checked_at": "2026-08-14T16:20:00Z"
+    "last_checked_at": "2026-08-14T22:40:00Z"
   },
   "findings": [
     {
@@ -277,6 +277,22 @@
         ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke-retry8/output/result.json"
       ],
       "recorded_at": "2026-08-14T19:27:00Z"
+    },
+    {
+      "id": "finding-infra-010",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The repository is now prepared to use the existing local Vast GPU backend instead of Kaggle. Repo-local Vast configuration files, a wrapper entrypoint, and a dedicated remote setup script have been added without launching a run yet. The next remote reference attempt should use ./infra/vast_run.sh with .vast/profile.toml.",
+      "evidence_refs": [
+        ".vast/profile.toml",
+        ".vast/profile.example.toml",
+        "infra/vast_run.sh",
+        "infra/vast_config.example.env",
+        "scripts/setup_vast_env.sh",
+        "requirements-vast.txt",
+        "AGENTS.md"
+      ],
+      "recorded_at": "2026-08-14T22:40:00Z"
     }
   ],
   "candidate_next_experiments": [
@@ -304,8 +320,8 @@
     {
       "id": "r1-repaired-branch-reference-run",
       "question_id": "blind-diffusion-recovery-2026-08-14",
-      "summary": "Run the repaired branch under the frozen low-dimensional protocol to produce the first truthful post-repair reference point for later controlled ablations.",
-      "reason": "The baseline has now been classified as non-runnable, so the next decision-efficient step is to establish an executable repaired-branch reference before DDIM or robustness changes.",
+      "summary": "Run the repaired branch under the frozen low-dimensional protocol on Vast to produce the first truthful post-repair reference point for later controlled ablations.",
+      "reason": "The baseline has now been classified as non-runnable, the Vast backend is prepared locally, and the next decision-efficient step is to establish an executable repaired-branch reference before DDIM or robustness changes.",
       "blocked_on": []
     },
     {

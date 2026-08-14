@@ -26,14 +26,14 @@ This repository is being recovered as a research project, not a patch task.
 
 ## Compute backend
 
-- Reuse the existing Kaggle workflow already present on this machine rather than inventing a new one.
-- Recovered reference implementation:
-  - `/Users/peiyan1/Desktop/ai_agent_memory/scripts/kaggle_remote_smoke.py`
-- Relevant traits from that workflow:
-  - repo-local Kaggle config support
-  - persisted job state
-  - persisted output and analysis directories
-  - kernel slug generation tied to experiment id and git commit
+- Use the existing Vast GPU workflow already present on this machine as the active remote backend.
+- Preferred entrypoint:
+  - `./infra/vast_run.sh "<command>"`
+- Repo-specific Vast settings belong in:
+  - `.vast/profile.toml`
+  - optional `infra/vast_config.env`
+- Keep credentials, SSH keys, host history, and shared lifecycle / pricing policy in the global `vast-run` config rather than this repository.
+- Historical Kaggle tooling may remain locally for recovery provenance, but treat it as local research infrastructure rather than the primary backend going forward.
 
 ## Evidence standard
 

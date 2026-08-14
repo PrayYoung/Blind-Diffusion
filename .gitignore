@@ -27,6 +27,8 @@ build/
 
 # Env
 .env
+.vast-run.env
+infra/vast_config.env
 
 # Legacy
 model/__pycache__/
