@@ -48,6 +48,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "A pure version pin to robomimic >= 0.4.0 failed before runtime because Kaggle's PyPI view only exposed robomimic 0.1.0, 0.2.0, and 0.3.0. The next retry must follow the upstream source-install path instead of relying on PyPI."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry3",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "The upstream source-install path produced a viable modern runtime with robomimic 0.4.0 and robosuite 1.5.1, but that stack downloaded low_dim_v15.hdf5 instead of the frozen-protocol low_dim_v141.hdf5. The next retry should use source tags aligned with the v141 dataset family."
     }
   ],
   "evidence": {

@@ -83,3 +83,24 @@ TypeError: create_env_from_metadata() got an unexpected keyword argument 'use_im
 - install `robosuite` from Git tag `v1.5.1`
 - preserve the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+4. `20260814_r1_repaired_reference_smoke_retry3`
+   - failure class: engineering
+   - modern source stack installed successfully
+   - runtime reported:
+     - `robomimic 0.4.0`
+     - `robosuite 1.5.1`
+     - CUDA available on Tesla T4
+   - first truthful failure:
+     - source-installed downloader produced `low_dim_v15.hdf5`
+     - frozen protocol expects `lift/low_dim_v141.hdf5`
+   - interpretation:
+     - this is a protocol-preservation issue, not a research result
+     - silently renaming `v15` to `v141` would conflate different dataset families
+
+## Planned retry 4
+
+- install `robomimic` from source tag `v0.3.0`
+- install `robosuite` from source tag `v1.4.1`
+- preserve the same repaired-branch train and eval protocol
+- submit with a new run identity

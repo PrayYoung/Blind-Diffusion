@@ -141,8 +141,12 @@ Last updated: Friday, August 14, 2026 UTC
   - third failure is still engineering-only:
     - Kaggle PyPI did not expose `robomimic >= 0.4.0`
     - pip-only version pinning cannot reach the modern stack we need
+  - fourth failure is still engineering-only:
+    - source installs succeeded with `robomimic 0.4.0` and `robosuite 1.5.1`
+    - that stack downloaded `low_dim_v15.hdf5`, not the frozen-protocol `low_dim_v141.hdf5`
+    - silently substituting datasets would violate the frozen comparison basis
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity using upstream-recommended source installs for `robomimic` and `robosuite`
+    - retry the same repaired-branch reference protocol with a new run identity using source tags aligned to the `v141` dataset family
 
 ## Best result so far
 

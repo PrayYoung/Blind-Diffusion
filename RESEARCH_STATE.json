@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T16:10:00Z"
+    "updated_at": "2026-08-14T03:44:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -201,6 +201,19 @@
         "https://robomimic.github.io/docs/introduction/installation.html"
       ],
       "recorded_at": "2026-08-14T03:35:00Z"
+    },
+    {
+      "id": "finding-r1-004",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The fourth repaired-branch retry validated the source-install path itself: Kaggle brought up robomimic 0.4.0, robosuite 1.5.1, CUDA, and the downloader, but it fetched the v1.5 dataset file low_dim_v15.hdf5 instead of the frozen-protocol low_dim_v141.hdf5. The smallest protocol-preserving repair is to use source tags aligned with the v141 dataset family rather than silently substituting datasets.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry3/analysis.json",
+        "https://github.com/ARISE-Initiative/robomimic/releases",
+        "https://github.com/ARISE-Initiative/robomimic/blob/master/docs/datasets/robomimic_v0.1.md"
+      ],
+      "recorded_at": "2026-08-14T03:42:00Z"
     }
   ],
   "candidate_next_experiments": [

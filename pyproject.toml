@@ -20,8 +20,8 @@ dependencies = [
 
 [project.optional-dependencies]
 robomimic = [
-  "robomimic @ git+https://github.com/ARISE-Initiative/robomimic.git@v0.4",
-  "robosuite @ git+https://github.com/ARISE-Initiative/robosuite.git@v1.5.1",
+  "robomimic @ git+https://github.com/ARISE-Initiative/robomimic.git@v0.3.0",
+  "robosuite @ git+https://github.com/ARISE-Initiative/robosuite.git@v1.4.1",
   "Cython<3.0",
 ]
 
