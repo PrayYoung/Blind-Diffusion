@@ -151,8 +151,12 @@ Last updated: Friday, August 14, 2026 UTC
   - sixth failure is still engineering-only:
     - direct `robosuite.make(...)` bypassed the `mujoco_py` wrapper path
     - the only remaining blocker is `robosuite 1.4.1` rejecting the `lite_physics` keyword
+  - seventh failure is still engineering-only:
+    - the reconstructed environment now reaches robosuite controller initialization
+    - the remaining blocker is a MuJoCo API mismatch at `MjData.qM`
+    - `robosuite v1.4.1` declares `mujoco>=2.3.0`, while this repo had still been allowing a much newer MuJoCo 3.x runtime
   - next step:
-    - retry the same repaired-branch reference protocol with a new run identity after removing the single incompatible `lite_physics` argument
+    - use the final planned compatibility retry to pin MuJoCo to the `2.3.x` family and then stop environment archaeology
 
 ## Best result so far
 

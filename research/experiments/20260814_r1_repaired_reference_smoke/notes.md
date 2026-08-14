@@ -140,3 +140,25 @@ TypeError: Lift.__init__() got an unexpected keyword argument 'lite_physics'
 - remove only the incompatible `lite_physics` keyword
 - preserve the same repaired-branch train and eval protocol
 - submit with a new run identity
+
+7. `20260814_r1_repaired_reference_smoke_retry6`
+   - failure class: engineering
+   - direct `robosuite.make(...)` now progressed into controller initialization
+   - first truthful remaining blocker:
+
+```text
+AttributeError: 'MjData' object has no attribute 'qM'
+```
+
+   - interpretation:
+     - `robosuite 1.4.1` declares `mujoco>=2.3.0`
+     - the current project metadata was still allowing much newer MuJoCo 3.x
+     - the next and final planned compatibility retry should pin MuJoCo to the `2.3.x` family
+
+## Planned retry 7
+
+- keep the same `robomimic 0.3.0` / `robosuite 1.4.1` source-tag stack
+- keep the same direct `robosuite.make(...)` adapter
+- pin MuJoCo to `>=2.3.0,<3.0`
+- preserve the same repaired-branch train and eval protocol
+- submit with a new run identity

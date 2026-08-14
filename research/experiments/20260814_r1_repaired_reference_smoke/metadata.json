@@ -66,6 +66,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "Direct robosuite environment construction cleared the mujoco_py blocker, but robosuite 1.4.1 rejected the lite_physics keyword. The next retry should remove that one incompatible argument and keep everything else frozen."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry6",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "With the lite_physics keyword removed, direct robosuite construction progressed into controller initialization. The first truthful remaining blocker is a MuJoCo runtime mismatch: robosuite 1.4.1 expects the older DeepMind MuJoCo 2.3.x API, but the project metadata still allowed newer MuJoCo 3.x."
     }
   ],
   "evidence": {
