@@ -154,11 +154,15 @@ Last updated: Friday, August 14, 2026 UTC
   - seventh failure is still engineering-only:
     - pinning MuJoCo back to `2.3.x` on Kaggle Python `3.12.13` fails during dependency installation because `mujoco 2.3.7` falls back to a source build and does not produce a usable wheel there
     - the direct `robosuite.make(...)` compatibility reconstruction path is now retired
+  - eighth failure is still engineering-only:
+    - the restored `create_env_from_metadata(...)` / `EnvRobosuite` path now launches on Kaggle
+    - the only blocker is pip dependency re-resolution rejecting the intentional `mujoco 3.5.0` override after the explicit compatibility installs
   - redirected next step:
-    - restore `robomimic.utils.env_utils.create_env_from_metadata(...)` / `EnvRobosuite`
+    - keep `robomimic.utils.env_utils.create_env_from_metadata(...)` / `EnvRobosuite`
     - keep the frozen `low_dim_v141.hdf5` dataset family
-    - install native DeepMind `mujoco 3.5.0`, `robosuite 1.4.1`, and `robomimic 0.3.0 --no-deps`
+    - keep native DeepMind `mujoco 3.5.0`, `robosuite 1.4.1`, and `robomimic 0.3.0 --no-deps`
     - patch only the unconditional `import mujoco_py` import site with a local compatibility stub
+    - add `--no-deps` to the follow-up requirements and editable installs so pip stops invalidating the intended compatibility stack
 
 ## Best result so far
 

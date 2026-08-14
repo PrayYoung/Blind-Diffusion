@@ -78,6 +78,12 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "Pinning MuJoCo backward to 2.3.x is not viable on Kaggle's Python 3.12 runtime because pip falls back to a source build of mujoco 2.3.7 and fails before rollout. The direct robosuite.make reconstruction path is therefore retired in favor of the exact robomimic create_env_from_metadata / EnvRobosuite path with a minimal local mujoco_py compatibility stub."
+    },
+    {
+      "experiment_id": "20260814_r1_repaired_reference_smoke_retry8",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "The restored create_env_from_metadata / EnvRobosuite path launches on Kaggle, but pip re-resolves dependencies after the explicit compatibility installs and rejects the intended mujoco 3.5.0 override. The smallest remaining repair is to keep the explicit install order and add --no-deps to the follow-up requirements and editable installs."
     }
   ],
   "evidence": {

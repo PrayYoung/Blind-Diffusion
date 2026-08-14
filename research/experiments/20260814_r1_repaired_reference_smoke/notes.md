@@ -185,3 +185,23 @@ ERROR: Failed to build installable wheels for some pyproject.toml based projects
 - apply only the smallest local compatibility shim for the unconditional `import mujoco_py` in `robomimic.envs.env_robosuite`
 - preserve the same train and eval protocol
 - submit with a new run identity
+
+9. `20260814_r1_repaired_reference_smoke_retry8`
+   - failure class: engineering
+   - the exact wrapper-based path now launches on Kaggle, but the first truthful remaining blocker is pip dependency resolution:
+
+```text
+ERROR: Cannot install mujoco<3.0 and >=2.3.0 and mujoco==3.5.0 because these package versions have conflicting dependencies.
+```
+
+   - interpretation:
+     - the intended compatibility stack is already being installed explicitly
+     - the follow-up `pip install -r requirements-kaggle.txt` is unnecessarily re-solving third-party metadata and rejecting the override
+
+## Planned retry 9
+
+- keep the exact wrapper-based `create_env_from_metadata(...)` / `EnvRobosuite` path
+- keep native `mujoco==3.5.0`, `robosuite==1.4.1`, and `robomimic==0.3.0 --no-deps`
+- add only `--no-deps` to the follow-up requirements and editable repo installs
+- preserve the same train and eval protocol
+- submit with a new run identity

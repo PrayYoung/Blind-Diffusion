@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T19:28:00Z"
+    "updated_at": "2026-08-14T19:30:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -265,6 +265,18 @@
         "https://github.com/ARISE-Initiative/robomimic/releases"
       ],
       "recorded_at": "2026-08-14T19:28:00Z"
+    },
+    {
+      "id": "finding-r1-009",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The first wrapper-restoration retry proved the exact create_env_from_metadata / EnvRobosuite path now launches on Kaggle, but pip re-resolves dependencies after the explicit compatibility installs and rejects the intended mujoco 3.5.0 override. The smallest remaining repair is infrastructure-only: add --no-deps to the follow-up requirements and editable installs.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-r1-repaired-reference-smoke-retry8/analysis.json",
+        ".codex/state/kaggle_jobs/outputs/20260814-r1-repaired-reference-smoke-retry8/output/result.json"
+      ],
+      "recorded_at": "2026-08-14T19:27:00Z"
     }
   ],
   "candidate_next_experiments": [

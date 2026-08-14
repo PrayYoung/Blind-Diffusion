@@ -98,7 +98,7 @@ def _install_runtime() -> dict[str, object]:
             f"stderr:\n{robomimic_install.stderr}"
         )
 
-    req_install = _pip_install(["-r", "requirements-kaggle.txt"], cwd=REPO_DIR)
+    req_install = _pip_install(["--no-deps", "-r", "requirements-kaggle.txt"], cwd=REPO_DIR)
     if req_install.returncode != 0:
         raise RuntimeError(
             "requirements-kaggle install failed.\n"
@@ -106,7 +106,7 @@ def _install_runtime() -> dict[str, object]:
             f"stderr:\n{req_install.stderr}"
         )
 
-    editable_install = _pip_install(["-e", "."], cwd=REPO_DIR)
+    editable_install = _pip_install(["--no-deps", "-e", "."], cwd=REPO_DIR)
     if editable_install.returncode != 0:
         raise RuntimeError(
             "Editable project install failed.\n"
