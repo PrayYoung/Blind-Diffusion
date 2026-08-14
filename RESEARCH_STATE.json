@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T16:00:00Z"
+    "updated_at": "2026-08-14T16:10:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -38,15 +38,15 @@
     ]
   },
   "active_experiment": {
-    "id": "archaeology-and-local-diagnostics",
-    "purpose": "Map the repository, freeze baseline metadata, confirm or refute the highest-priority correctness hypotheses, and recover existing remote execution infrastructure.",
-    "design": "Static code trace plus the cheapest local diagnostics before any semantic code changes or Kaggle submissions.",
+    "id": "r1-repaired-branch-reference-run",
+    "purpose": "Produce the first executable repaired-branch reference run after the frozen baseline has been classified as non-runnable.",
+    "design": "Keep the evaluation protocol frozen, use the already-validated Kaggle backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
     "backend": "local-plus-kaggle-remote-smoke",
-    "state": "running_remote",
+    "state": "planned",
     "job_ref": "",
-    "output_ref": "RESEARCH_STATE.md",
-    "submitted_at": "2026-08-14T00:00:00Z",
-    "last_checked_at": "2026-08-14T12:00:00Z"
+    "output_ref": "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
+    "submitted_at": "2026-08-14T16:20:00Z",
+    "last_checked_at": "2026-08-14T16:20:00Z"
   },
   "findings": [
     {
@@ -130,13 +130,39 @@
       "id": "finding-arch-008",
       "question_id": "blind-diffusion-recovery-2026-08-14",
       "kind": "engineering",
-      "summary": "A repo-local Kaggle remote smoke runner was vendored and retargeted to Blind-Diffusion on Friday, August 14, 2026. Local syntax and package-build checks passed, but actual Kaggle submission is blocked pending explicit user approval because it exports the current repository snapshot to an external service.",
+      "summary": "A repo-local Kaggle remote smoke runner was vendored and retargeted to Blind-Diffusion on Friday, August 14, 2026. After three engineering-only failures and corresponding retries, the smoke passed on retry 3 with a Tesla T4, RoboMimic dataset download, regression tests, and a tiny world-model training run.",
       "evidence_refs": [
         "scripts/kaggle_remote_smoke.py",
         "kaggle/remote_smoke/remote_smoke.py",
-        "research/experiments/20260814_remote_smoke_r0/metadata.json"
+        "research/experiments/20260814_remote_smoke_r0/metadata.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-remote-smoke-r0-retry3/analysis.json"
       ],
-      "recorded_at": "2026-08-14T16:00:00Z"
+      "recorded_at": "2026-08-14T02:42:00Z"
+    },
+    {
+      "id": "finding-arch-009",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The remote smoke failure chain was: retry 0 used the wrong RoboMimic downloader CLI, retry 1 succeeded in download but expected the dataset at the wrong normalized path, retry 2 fixed dataset normalization but used a non-importable unittest module path on Kaggle, and retry 3 passed after switching to unittest discovery.",
+      "evidence_refs": [
+        ".codex/state/kaggle_jobs/analysis/20260814-remote-smoke-r0/analysis.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-remote-smoke-r0-retry1/analysis.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-remote-smoke-r0-retry2/analysis.json",
+        ".codex/state/kaggle_jobs/analysis/20260814-remote-smoke-r0-retry3/analysis.json"
+      ],
+      "recorded_at": "2026-08-14T02:42:00Z"
+    },
+    {
+      "id": "finding-r0-001",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "Frozen baseline commit 356dc691381feaf7c269801cb484caaa24fe486c is not remotely executable under the recovered Kaggle protocol. After one packaging-only retry, the baseline reaches world-model training and then fails inside src/blind_diffusion/data/robomimic_dataset.py because RoboMimicSequenceDataset.__init__ dereferences self._h5['data'] while self._h5 is still None.",
+      "evidence_refs": [
+        "research/experiments/20260814_r0_baseline_smoke/metadata.json",
+        "research/experiments/20260814_r0_baseline_smoke/notes.md",
+        ".codex/state/kaggle_jobs/analysis/20260814-r0-baseline-smoke-retry1/analysis.json"
+      ],
+      "recorded_at": "2026-08-14T03:05:00Z"
     }
   ],
   "candidate_next_experiments": [
@@ -152,6 +178,20 @@
       "question_id": "blind-diffusion-recovery-2026-08-14",
       "summary": "Create a deterministic diagnostic or test that proves whether low-dimensional RSSM state persists across control timesteps.",
       "reason": "Highest-priority correctness claim; should be isolated before broader changes.",
+      "blocked_on": []
+    },
+    {
+      "id": "r0-baseline-remote-run",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Run the frozen baseline commit remotely with the smallest execution path that can truthfully classify baseline executability and produce baseline metrics or the first true blocking failure.",
+      "reason": "The Kaggle engineering backend is now validated; the next high-value step is actual baseline reproduction rather than more tooling work.",
+      "blocked_on": []
+    },
+    {
+      "id": "r1-repaired-branch-reference-run",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Run the repaired branch under the frozen low-dimensional protocol to produce the first truthful post-repair reference point for later controlled ablations.",
+      "reason": "The baseline has now been classified as non-runnable, so the next decision-efficient step is to establish an executable repaired-branch reference before DDIM or robustness changes.",
       "blocked_on": []
     },
     {

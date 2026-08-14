@@ -1,0 +1,33 @@
+{
+  "experiment_id": "20260814_r1_repaired_reference_smoke",
+  "timestamp": "2026-08-14T16:20:00Z",
+  "kind": "remote_repaired_branch_reference",
+  "status": "planned",
+  "git_commit_under_test": null,
+  "git_branch": "codex/blind-diffusion-research-recovery",
+  "protocol_version": "repaired-reference-v1",
+  "frozen_controls": {
+    "task": "lift",
+    "dataset_type": "robomimic ph low_dim",
+    "train_overrides": [
+      "task=lift",
+      "max_steps=20",
+      "val_every=20",
+      "log_every=10",
+      "batch_size=16",
+      "num_workers=0",
+      "run_dir=/kaggle/working/runs",
+      "exp_name=wm_lift_smoke"
+    ],
+    "eval_overrides": [
+      "eval.mode=mpc",
+      "task=lift",
+      "episodes=2",
+      "max_steps=200",
+      "run_dir=/kaggle/working/eval_runs",
+      "exp_name=eval_lift_smoke"
+    ]
+  },
+  "objective": "Establish the first executable repaired-branch world-model-train plus low-dimensional MPC-eval reference point under the recovered Kaggle backend.",
+  "notes": "This is an execution and measurement reference run, not a final benchmark."
+}

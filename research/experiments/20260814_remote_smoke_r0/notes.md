@@ -30,4 +30,24 @@ Prepare the recovered Kaggle GPU workflow for Blind-Diffusion and submit a first
 
 ## Blocker
 
-- Submission did not proceed because explicit user approval is required before exporting the repository snapshot to Kaggle.
+- Original submission was blocked until explicit approval to export the repository snapshot to Kaggle was granted.
+
+## Retry outcome on Friday, August 14, 2026
+
+1. `20260814_remote_smoke_r0`
+   - failed
+   - cause: wrong RoboMimic downloader CLI
+2. `20260814_remote_smoke_r0_retry1`
+   - failed
+   - cause: dataset path normalization mismatch
+3. `20260814_remote_smoke_r0_retry2`
+   - failed
+   - cause: remote unittest module invocation mismatch
+4. `20260814_remote_smoke_r0_retry3`
+   - passed
+   - validated:
+     - Tesla T4 runtime
+     - CUDA-enabled PyTorch
+     - RoboMimic low-dim dataset download
+     - remote regression tests
+     - tiny world-model training smoke with checkpoint and metrics

@@ -2,7 +2,7 @@
   "experiment_id": "20260814_remote_smoke_r0",
   "timestamp": "2026-08-14T16:00:00Z",
   "kind": "remote_smoke",
-  "status": "blocked_requires_user_approval",
+  "status": "passed_after_retries",
   "git_commit_at_preparation": "863e81e",
   "git_branch": "codex/blind-diffusion-research-recovery",
   "artifacts": {
@@ -15,9 +15,39 @@
     "kernel_build": "passed",
     "kernel_ref": "PrayYoung/blind-diffusion-remote-smoke"
   },
-  "blocker": {
-    "type": "approval_required",
-    "summary": "Submitting to Kaggle exports a bundled copy of the current repository to an external service and requires explicit user approval.",
-    "source": "tool policy rejection on 2026-08-14"
+  "retry_chain": [
+    {
+      "experiment_id": "20260814_remote_smoke_r0",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Wrong RoboMimic downloader CLI arguments: remote robomimic 0.3.0 rejected --version."
+    },
+    {
+      "experiment_id": "20260814_remote_smoke_r0_retry1",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Dataset downloaded to lift/ph/low_dim_v141.hdf5; smoke expected lift/low_dim_v141.hdf5."
+    },
+    {
+      "experiment_id": "20260814_remote_smoke_r0_retry2",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Remote unittest invocation used non-importable module names on Kaggle."
+    },
+    {
+      "experiment_id": "20260814_remote_smoke_r0_retry3",
+      "status": "passed",
+      "failure_class": null,
+      "summary": "Remote smoke passed with dataset download, regression tests, and tiny world-model training smoke."
+    }
+  ],
+  "result_summary": {
+    "passed_retry": "20260814_remote_smoke_r0_retry3",
+    "gpu": "Tesla T4",
+    "torch": "2.6.0+cu118",
+    "robomimic": "0.3.0",
+    "dataset_downloaded": true,
+    "unittests_passed": true,
+    "world_model_smoke_checkpoint": true
   }
 }

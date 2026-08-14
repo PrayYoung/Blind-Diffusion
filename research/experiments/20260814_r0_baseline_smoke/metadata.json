@@ -1,0 +1,49 @@
+{
+  "experiment_id": "20260814_r0_baseline_smoke",
+  "timestamp": "2026-08-14T03:05:00Z",
+  "kind": "remote_baseline_executability",
+  "status": "failed_after_engineering_retry",
+  "git_commit_under_test": "356dc691381feaf7c269801cb484caaa24fe486c",
+  "git_branch_used_for_submission": "codex/blind-diffusion-research-recovery",
+  "protocol_version": "baseline-executability-v1",
+  "frozen_controls": {
+    "task": "lift",
+    "dataset_type": "robomimic ph low_dim",
+    "smoke_train_overrides": [
+      "task=lift",
+      "max_steps=20",
+      "val_every=20",
+      "log_every=10",
+      "batch_size=16",
+      "num_workers=0",
+      "run_dir=/kaggle/working/runs",
+      "exp_name=wm_lift_smoke"
+    ]
+  },
+  "retry_chain": [
+    {
+      "experiment_id": "20260814_r0_baseline_smoke",
+      "status": "failed",
+      "failure_class": "engineering",
+      "summary": "Historical source bundle omitted requirements-kaggle.txt, so the Kaggle payload could not install its pinned runtime."
+    },
+    {
+      "experiment_id": "20260814_r0_baseline_smoke_retry1",
+      "status": "failed",
+      "failure_class": "baseline_code",
+      "summary": "Baseline code reached world-model training and failed in RoboMimicSequenceDataset.__init__ with TypeError: 'NoneType' object is not subscriptable."
+    }
+  ],
+  "result_summary": {
+    "classification": "baseline_not_executable",
+    "first_truthful_failure": "src/blind_diffusion/data/robomimic_dataset.py dereferences self._h5 before opening the HDF5 file",
+    "gpu": "Tesla T4",
+    "dataset_downloaded": true,
+    "remote_tests_skipped": true,
+    "skip_reason": "tests directory absent in frozen source snapshot"
+  },
+  "evidence": {
+    "analysis_json": ".codex/state/kaggle_jobs/analysis/20260814-r0-baseline-smoke-retry1/analysis.json",
+    "job_log_dir": ".codex/state/kaggle_jobs/outputs/20260814-r0-baseline-smoke-retry1"
+  }
+}

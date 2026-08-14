@@ -11,9 +11,23 @@
     {
       "id": "20260814_remote_smoke_r0",
       "kind": "remote_smoke",
-      "status": "blocked_requires_user_approval",
+      "status": "passed_after_retries",
       "question_id": "blind-diffusion-recovery-2026-08-14",
       "artifact_dir": "research/experiments/20260814_remote_smoke_r0"
+    },
+    {
+      "id": "20260814_r0_baseline_smoke",
+      "kind": "remote_baseline_executability",
+      "status": "failed_after_engineering_retry",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260814_r0_baseline_smoke"
+    },
+    {
+      "id": "20260814_r1_repaired_reference_smoke",
+      "kind": "remote_repaired_branch_reference",
+      "status": "planned",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260814_r1_repaired_reference_smoke"
     }
   ]
 }

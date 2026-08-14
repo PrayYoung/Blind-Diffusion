@@ -8,6 +8,7 @@ import json
 import os
 import re
 import stat
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
@@ -36,6 +37,7 @@ MAX_SLUG_LENGTH = 49
 EXCLUDED_BUNDLE_DIRS = {
     ".git",
     ".venv",
+    ".codex",
     "__pycache__",
     ".pytest_cache",
     "build",
@@ -143,7 +145,58 @@ def build_bundle_constant() -> str:
     return base64.b64encode(gzip.compress(payload)).decode("ascii")
 
 
-def build_kernel_tree(build_dir: Path, username: str, slug: str, title: str, private: bool, internet: bool) -> Path:
+def build_bundle_constant_from_commit(source_commit: str) -> str:
+    list_result = run_command(
+        ["git", "ls-tree", "-r", "--name-only", source_commit],
+        cwd=REPO_ROOT,
+        capture_output=True,
+    )
+    if list_result.returncode != 0:
+        raise RuntimeError(
+            f"Unable to list files for commit {source_commit}.\n"
+            f"stderr:\n{list_result.stderr}"
+        )
+
+    files: dict[str, str] = {}
+    for rel_str in sorted(line.strip() for line in list_result.stdout.splitlines() if line.strip()):
+        rel = Path(rel_str)
+        if any(part in EXCLUDED_BUNDLE_DIRS for part in rel.parts):
+            continue
+        if rel.suffix.lower() in EXCLUDED_BUNDLE_SUFFIXES:
+            continue
+        show_result = run_command(
+            ["git", "show", f"{source_commit}:{rel_str}"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+        )
+        if show_result.returncode != 0:
+            raise RuntimeError(
+                f"Unable to read {rel_str} from commit {source_commit}.\n"
+                f"stderr:\n{show_result.stderr}"
+            )
+        try:
+            files[rel_str] = show_result.stdout
+        except UnicodeDecodeError:
+            continue
+    # Inject current local research infrastructure files that the remote runner
+    # depends on but that may not exist in the historical source snapshot.
+    for infra_rel in [Path("requirements-kaggle.txt")]:
+        infra_path = REPO_ROOT / infra_rel
+        if infra_path.exists():
+            files[str(infra_rel)] = infra_path.read_text(encoding="utf-8")
+    payload = json.dumps(files, sort_keys=True).encode("utf-8")
+    return base64.b64encode(gzip.compress(payload)).decode("ascii")
+
+
+def build_kernel_tree(
+    build_dir: Path,
+    username: str,
+    slug: str,
+    title: str,
+    private: bool,
+    internet: bool,
+    source_commit: str | None = None,
+) -> Path:
     if build_dir.exists():
         shutil.rmtree(build_dir)
     build_dir.mkdir(parents=True, exist_ok=True)
@@ -158,7 +211,7 @@ def build_kernel_tree(build_dir: Path, username: str, slug: str, title: str, pri
         shutil.copy2(source, target)
 
     template = (KAGGLE_TEMPLATE_DIR / "remote_smoke.py").read_text()
-    bundle = build_bundle_constant()
+    bundle = build_bundle_constant_from_commit(source_commit) if source_commit else build_bundle_constant()
     if "__BUNDLED_REPO_GZ_B64__" not in template:
         raise RuntimeError("remote_smoke.py template is missing bundle placeholder.")
     (build_dir / "remote_smoke.py").write_text(template.replace("__BUNDLED_REPO_GZ_B64__", bundle))
@@ -173,7 +226,7 @@ def build_kernel_tree(build_dir: Path, username: str, slug: str, title: str, pri
         "enable_gpu": True,
         "enable_tpu": False,
         "enable_internet": internet,
-        "keywords": ["benchmark", "gpu", "smoke"],
+        "keywords": ["benchmark", "gpu"],
         "dataset_sources": [],
         "kernel_sources": [],
         "competition_sources": [],
@@ -326,6 +379,29 @@ def load_result_json(output_dir: Path) -> dict:
     raise FileNotFoundError(f"Could not find result.json under {output_dir}")
 
 
+def analyze_remote_smoke_result(output_dir: Path, analysis_dir: Path) -> dict[str, object]:
+    analysis_dir.mkdir(parents=True, exist_ok=True)
+    result = load_result_json(output_dir)
+    result_path = output_dir / "output" / "result.json"
+    if not result_path.exists():
+        result_path = output_dir / "result.json"
+    analysis = {
+        "analysis_generated_at": utcnow_iso(),
+        "analysis_type": "remote_smoke",
+        "status": result.get("status"),
+        "result_path": str(result_path),
+        "error": result.get("error"),
+        "dataset": result.get("dataset"),
+        "runtime": result.get("runtime"),
+        "unittests": result.get("unittests"),
+        "world_model_smoke": result.get("world_model_smoke"),
+        "lowdim_eval_smoke": result.get("lowdim_eval_smoke"),
+    }
+    analysis_path = analysis_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, indent=2, sort_keys=True) + "\n")
+    return analysis
+
+
 def find_sweep_summary(output_dir: Path) -> Path:
     preferred = []
     for path in output_dir.rglob("summary.json"):
@@ -460,6 +536,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         title=title,
         private=not args.public,
         internet=not args.no_internet,
+        source_commit=getattr(args, "git_commit", None),
     )
     print(f"Built Kaggle kernel package at {build_dir}")
     print(f"Kernel ref: {kernel_ref(username, slug)}")
@@ -479,6 +556,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
         title=title,
         private=not args.public,
         internet=not args.no_internet,
+        source_commit=getattr(args, "git_commit", None),
     )
     command = [
         "kaggle",
@@ -605,6 +683,7 @@ def new_experiment_state(args: argparse.Namespace, *, existing_slug: str | None 
         "kaggle_slug": slug,
         "kernel_ref": kernel_ref(username, slug),
         "git_commit": git_commit,
+        "source_commit": git_commit,
         "submitted_at": submitted_at,
         "state": "CREATED",
         "last_checked_at": None,
@@ -638,6 +717,7 @@ def cmd_submit_experiment(args: argparse.Namespace) -> int:
         title=str(state["title"]),
         private=bool(state["is_private"]),
         internet=bool(state["internet_enabled"]),
+        source_commit=str(state.get("source_commit") or state["git_commit"]),
     )
     env = kaggle_env(str(state["username"]))
     command = [
@@ -726,7 +806,17 @@ def cmd_analyze_experiment(args: argparse.Namespace, state: dict[str, object] | 
     state = state or load_state(args.experiment_id)
     output_dir = Path(str(state["output_directory"]))
     analysis_dir = Path(str(state["analysis_directory"]))
-    analysis = analyze_sweep_outputs(output_dir, analysis_dir)
+    result = load_result_json(output_dir)
+    if (
+        str(state.get("experiment_id", "")).startswith("20260814_remote_smoke")
+        or str(state.get("experiment_id", "")).startswith("20260814_r0_baseline_smoke")
+        or "world_model_smoke" in result
+        or "dataset" in result
+        or "traceback" in result
+    ):
+        analysis = analyze_remote_smoke_result(output_dir, analysis_dir)
+    else:
+        analysis = analyze_sweep_outputs(output_dir, analysis_dir)
     state["analysis_generated_at"] = analysis["analysis_generated_at"]
     state["analysis_json"] = str(analysis_dir / "analysis.json")
     state["state"] = "ANALYZED"
@@ -770,6 +860,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--username", default=None, help="Kaggle username. Defaults to KAGGLE_USERNAME or PrayYoung.")
     parser.add_argument("--slug", default=None, help="Kaggle kernel slug.")
     parser.add_argument("--title", default=None, help="Kaggle kernel title.")
+    parser.add_argument("--git-commit", default=None, help="Optional git commit to package instead of the current working tree.")
     parser.add_argument("--build-dir", type=Path, default=DEFAULT_BUILD_DIR, help="Local staging directory for the kernel package.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Local directory for downloaded kernel outputs.")
     parser.add_argument("--accelerator", default=DEFAULT_ACCELERATOR, help="Kaggle accelerator ID.")
@@ -797,7 +888,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Submit a uniquely identified Kaggle experiment and persist local state without waiting.",
     )
     submit_experiment.add_argument("--experiment-id", required=True, help="Stable local experiment identifier.")
-    submit_experiment.add_argument("--git-commit", default=None, help="Override git commit stored with this experiment.")
 
     register_existing = subparsers.add_parser(
         "register-existing",

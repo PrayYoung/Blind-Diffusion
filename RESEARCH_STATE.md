@@ -1,6 +1,6 @@
 # Blind-Diffusion Research State
 
-Last updated: 2026-08-14 UTC
+Last updated: Friday, August 14, 2026 UTC
 
 ## Current repository state
 
@@ -90,8 +90,9 @@ Last updated: 2026-08-14 UTC
 
 ## Active experiment
 
-- `archaeology-and-local-diagnostics`
-- Goal: freeze baseline, verify correctness claims locally, and recover the existing Kaggle workflow
+- `r1-repaired-branch-reference-run`
+- Goal: establish the first executable repaired-branch reference run after classifying the frozen baseline as non-runnable
+- Artifact target: `research/experiments/20260814_r1_repaired_reference_smoke`
 
 ## Completed experiments
 
@@ -101,12 +102,34 @@ Last updated: 2026-08-14 UTC
   - Local regression tests now pass for RSSM stepping and dataset lifecycle.
 - `20260814_remote_smoke_r0`
   - Repo-local Kaggle runner prepared and packaged successfully.
-  - Submission blocked pending explicit approval to export repo contents to Kaggle.
+  - Submission approval was obtained on Friday, August 14, 2026.
+  - Retry chain:
+    - `20260814_remote_smoke_r0`: wrong RoboMimic downloader CLI
+    - `20260814_remote_smoke_r0_retry1`: download succeeded, dataset path normalization wrong
+    - `20260814_remote_smoke_r0_retry2`: dataset path fixed, remote unittest invocation wrong
+    - `20260814_remote_smoke_r0_retry3`: PASS
+  - Validated remote smoke outcome on retry 3:
+    - GPU: Tesla T4
+    - CUDA available
+    - RoboMimic low-dim dataset downloaded remotely
+    - regression tests passed remotely
+    - tiny world-model training smoke produced checkpoint and metrics
+- `20260814_r0_baseline_smoke`
+  - Source commit under test:
+    - `356dc691381feaf7c269801cb484caaa24fe486c`
+  - Retry chain:
+    - `20260814_r0_baseline_smoke`: engineering failure, historical bundle omitted `requirements-kaggle.txt`
+    - `20260814_r0_baseline_smoke_retry1`: baseline code failure in `src/blind_diffusion/data/robomimic_dataset.py`
+  - Truthful baseline classification:
+    - frozen baseline is not executable under the recovered Kaggle protocol
+    - first blocking failure is the dataset constructor dereference of unopened `self._h5`
 
 ## Best result so far
 
 - No validated performance result yet.
-- Best evidence so far is negative engineering evidence: the current repository state still contains at least one hard dataset-construction bug and one likely planner-memory bug.
+- Best evidence so far is a validated engineering result:
+  - the repaired branch can execute a remote RoboMimic smoke end-to-end on Kaggle after infrastructure fixes
+  - this is not yet a baseline scientific result
 
 ## Blockers
 
@@ -114,10 +137,10 @@ Last updated: 2026-08-14 UTC
 2. Dataset paths and local RoboMimic assets are not yet confirmed.
 3. Local environment still lacks `hydra-core` and `robomimic`.
 4. Local machine has no CUDA device, so latency and control-quality claims still require remote execution.
-5. Kaggle submission now requires explicit user approval because the runner exports the current repository snapshot to an external service.
+5. No repaired-branch reference training or evaluation run has been recorded yet, so there is still no executable control-quality reference point.
 
 ## Next action
 
-1. If the user approves exporting the repository snapshot to Kaggle, submit `20260814_remote_smoke_r0`.
-2. After smoke success, reproduce `R0` remotely with frozen baseline metadata.
-3. Only then expand metrics, sensor corruption, and DDIM benchmarking.
+1. Prepare the smallest repaired-branch train and evaluation run that preserves the frozen low-dimensional protocol.
+2. Record it as the first executable post-repair reference point.
+3. Only after that reference exists should I expand into controlled ablations such as blackout robustness or DDIM speed and quality tradeoffs.

@@ -135,32 +135,44 @@ def _download_dataset() -> dict[str, object]:
             sys.executable,
             "-m",
             "robomimic.scripts.download_datasets",
-            "--task",
+            "--tasks",
             "lift",
-            "--dataset_type",
+            "--dataset_types",
+            "ph",
+            "--hdf5_types",
             "low_dim",
-            "--version",
-            "v141",
             "--download_dir",
             str(DATASET_ROOT),
         ],
         cwd=REPO_DIR,
     )
-    dataset_path = DATASET_ROOT / "lift" / "low_dim_v141.hdf5"
+    downloaded_path = DATASET_ROOT / "lift" / "ph" / "low_dim_v141.hdf5"
+    normalized_path = DATASET_ROOT / "lift" / "low_dim_v141.hdf5"
+    if downloaded_path.exists():
+        normalized_path.parent.mkdir(parents=True, exist_ok=True)
+        if not normalized_path.exists():
+            shutil.copy2(downloaded_path, normalized_path)
     return {
         "returncode": result.returncode,
         "stdout": result.stdout,
         "stderr": result.stderr,
-        "dataset_path": str(dataset_path),
-        "dataset_exists": dataset_path.exists(),
+        "dataset_path": str(normalized_path),
+        "downloaded_path": str(downloaded_path),
+        "dataset_exists": normalized_path.exists(),
     }
 
 
 def _run_unittests() -> dict[str, object]:
+    tests_dir = REPO_DIR / "tests"
+    if not tests_dir.exists():
+        return {
+            "skipped": True,
+            "reason": "tests directory absent in bundled source snapshot",
+        }
     env = os.environ.copy()
     env["PYTHONPATH"] = "src"
     result = _run(
-        [sys.executable, "-m", "unittest", "tests.test_rssm", "tests.test_datasets"],
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
         cwd=REPO_DIR,
         env=env,
     )
@@ -171,6 +183,7 @@ def _run_unittests() -> dict[str, object]:
             f"stderr:\n{result.stderr}"
         )
     return {
+        "skipped": False,
         "returncode": result.returncode,
         "stdout": result.stdout,
         "stderr": result.stderr,
@@ -212,6 +225,43 @@ def _run_world_model_smoke() -> dict[str, object]:
         "metrics_path": str(metrics_path),
         "metrics_exists": metrics_path.exists(),
         "checkpoint_exists": checkpoint_path.exists(),
+        "checkpoint_path": str(checkpoint_path),
+        "metrics": json.loads(metrics_path.read_text()) if metrics_path.exists() else None,
+    }
+
+
+def _run_lowdim_eval(checkpoint_path: str) -> dict[str, object]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "src"
+    env["ROBO_DATA"] = str(DATASET_ROOT)
+    result = _run(
+        [
+            sys.executable,
+            "scripts/eval.py",
+            "eval.mode=mpc",
+            "task=lift",
+            f"checkpoint={checkpoint_path}",
+            "episodes=2",
+            "max_steps=200",
+            "run_dir=/kaggle/working/eval_runs",
+            "exp_name=eval_lift_smoke",
+        ],
+        cwd=REPO_DIR,
+        env=env,
+    )
+    metrics_path = WORKING_ROOT / "eval_runs" / "eval_lift_smoke" / "metrics.json"
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Low-dimensional evaluation smoke failed.\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
+    return {
+        "returncode": result.returncode,
+        "stdout_tail": result.stdout[-4000:],
+        "stderr_tail": result.stderr[-4000:],
+        "metrics_path": str(metrics_path),
+        "metrics_exists": metrics_path.exists(),
         "metrics": json.loads(metrics_path.read_text()) if metrics_path.exists() else None,
     }
 
@@ -234,6 +284,7 @@ def main() -> int:
             )
         unittest_info = _run_unittests()
         smoke_info = _run_world_model_smoke()
+        eval_info = _run_lowdim_eval(smoke_info["checkpoint_path"])
         result.update(
             {
                 "status": "PASS",
@@ -243,6 +294,7 @@ def main() -> int:
                 "dataset": dataset_info,
                 "unittests": unittest_info,
                 "world_model_smoke": smoke_info,
+                "lowdim_eval_smoke": eval_info,
             }
         )
     except Exception as exc:
