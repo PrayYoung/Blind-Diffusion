@@ -1,0 +1,153 @@
+{
+  "project": {
+    "name": "Blind-Diffusion",
+    "updated_at": "2026-08-14T12:00:00Z"
+  },
+  "active_question": {
+    "id": "blind-diffusion-recovery-2026-08-14",
+    "title": "Recover and validate Blind-Diffusion baselines and Antigravity claims",
+    "status": "active",
+    "summary": "Freeze the current baseline at commit 356dc691381feaf7c269801cb484caaa24fe486c, verify reported correctness bugs independently, then run controlled reproduction experiments before any broader research."
+  },
+  "current_hypothesis": {
+    "id": "hyp-r1-recurrent-state-and-dataset-lifecycle",
+    "statement": "The current repository still contains at least two correctness bugs: low-dimensional evaluation resets RSSM state incorrectly each environment step, and the RoboMimic HDF5 datasets dereference an unopened shared handle during initialization and are unsafe for multi-worker loading.",
+    "falsifiable": true,
+    "frozen_at": "2026-08-14T00:00:00Z",
+    "success_criteria": [
+      "Trace code paths and execute focused diagnostics that either confirm or refute the recurrent-state reset hypothesis without changing unrelated logic.",
+      "Run dataset initialization and worker-count stress tests that classify the HDF5 issue as a real bug, a false alarm, or a narrower failure mode.",
+      "Preserve the frozen baseline commit and protocol before applying any correctness fix."
+    ],
+    "failure_criteria": [
+      "Evidence shows recurrent state already propagates causally across low-dimensional control steps.",
+      "Evidence shows dataset initialization and multi-worker loading are already safe in the current repository."
+    ],
+    "primary_metrics": [
+      "Deterministic recurrent state persistence across timesteps",
+      "Dataset initialization success",
+      "DataLoader stability across num_workers in {0,1,2,4}",
+      "Baseline success rate, return, and latency once execution is available"
+    ],
+    "baseline_refs": [
+      "git:356dc691381feaf7c269801cb484caaa24fe486c",
+      "branch:codex/blind-diffusion-research-recovery",
+      "config:src/blind_diffusion/configs/eval_mpc.yaml",
+      "config:src/blind_diffusion/configs/eval_diffusion.yaml",
+      "config:src/blind_diffusion/configs/eval_image.yaml"
+    ]
+  },
+  "active_experiment": {
+    "id": "archaeology-and-local-diagnostics",
+    "purpose": "Map the repository, freeze baseline metadata, confirm or refute the highest-priority correctness hypotheses, and recover existing remote execution infrastructure.",
+    "design": "Static code trace plus the cheapest local diagnostics before any semantic code changes or Kaggle submissions.",
+    "backend": "local-plus-kaggle-remote-smoke",
+    "state": "running_remote",
+    "job_ref": "",
+    "output_ref": "RESEARCH_STATE.md",
+    "submitted_at": "2026-08-14T00:00:00Z",
+    "last_checked_at": "2026-08-14T12:00:00Z"
+  },
+  "findings": [
+    {
+      "id": "finding-arch-001",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "Low-dimensional MPC evaluation in src/blind_diffusion/eval/evaluate_lowdim.py initializes RSSM state once from the reset observation, but then recomputes posterior state each step via wm.rssm.observe(...) without feeding forward the prior h/z state. This strongly indicates planner amnesia in low-dimensional evaluation.",
+      "evidence_refs": [
+        "src/blind_diffusion/eval/evaluate_lowdim.py",
+        "src/blind_diffusion/models/rssm.py"
+      ],
+      "recorded_at": "2026-08-14T00:00:00Z"
+    },
+    {
+      "id": "finding-arch-002",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "Both RoboMimic dataset classes set self._h5 = None and then immediately read self._h5 during __init__, so dataset construction is currently broken before any worker-safety question is even reached.",
+      "evidence_refs": [
+        "src/blind_diffusion/data/robomimic_dataset.py",
+        "src/blind_diffusion/data/robomimic_dataset_image.py"
+      ],
+      "recorded_at": "2026-08-14T00:00:00Z"
+    },
+    {
+      "id": "finding-arch-003",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "unresolved",
+      "summary": "Image evaluation contains an inline prior-rollout path for sensor blackout, but RSSM still lacks a reusable single-step prior transition primitive and low-dimensional evaluation has no equivalent blackout handling yet.",
+      "evidence_refs": [
+        "src/blind_diffusion/eval/evaluate_image.py",
+        "src/blind_diffusion/models/rssm.py"
+      ],
+      "recorded_at": "2026-08-14T00:00:00Z"
+    },
+    {
+      "id": "finding-arch-004",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "unresolved",
+      "summary": "Diffusion sampling currently uses full-step stochastic DDPM sampling via GaussianDiffusion.sample with no DDIM path or latency instrumentation in this repository state.",
+      "evidence_refs": [
+        "src/blind_diffusion/diffusion/diffusion.py",
+        "src/blind_diffusion/eval/evaluate_diffusion.py"
+      ],
+      "recorded_at": "2026-08-14T00:00:00Z"
+    },
+    {
+      "id": "finding-arch-005",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "Existing Kaggle remote execution infrastructure was recovered from /Users/peiyan1/Desktop/ai_agent_memory/scripts/kaggle_remote_smoke.py. Current shell exposes KAGGLE_KEY, and the wrapper already supports repo-local Kaggle config state and persisted remote job records.",
+      "evidence_refs": [
+        "/Users/peiyan1/Desktop/ai_agent_memory/scripts/kaggle_remote_smoke.py",
+        "/Users/peiyan1/.codex/rules/default.rules"
+      ],
+      "recorded_at": "2026-08-14T00:00:00Z"
+    },
+    {
+      "id": "finding-arch-006",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The frozen baseline is not executable locally as configured on Friday, August 14, 2026: ROBO_DATA is unset, no local runs/ checkpoints were present in the repository, the repo venv lacks hydra-core and robomimic, and no local CUDA device is available.",
+      "evidence_refs": [
+        "research/experiments/20260814_local_diagnostics/metadata.json"
+      ],
+      "recorded_at": "2026-08-14T12:00:00Z"
+    },
+    {
+      "id": "finding-arch-007",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "Local regression tests now verify the RSSM imagine_step primitive and dataset lifecycle repairs. Synthetic HDF5 construction passes for both dataset classes, and a repeated-epoch DataLoader stress test passes for num_workers 0, 1, 2, and 4 using a host-compatible NumPy collate path.",
+      "evidence_refs": [
+        "tests/test_rssm.py",
+        "tests/test_datasets.py",
+        "research/experiments/20260814_local_diagnostics/metadata.json"
+      ],
+      "recorded_at": "2026-08-14T12:00:00Z"
+    }
+  ],
+  "candidate_next_experiments": [
+    {
+      "id": "r0-baseline-executability",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Attempt baseline dataset initialization and, if assets exist, baseline low-dimensional evaluation without code changes.",
+      "reason": "Need a truthful frozen baseline status before repairing anything.",
+      "blocked_on": []
+    },
+    {
+      "id": "r1-recurrent-state-diagnostic",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Create a deterministic diagnostic or test that proves whether low-dimensional RSSM state persists across control timesteps.",
+      "reason": "Highest-priority correctness claim; should be isolated before broader changes.",
+      "blocked_on": []
+    },
+    {
+      "id": "r6-dataset-worker-stress",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Run dataset construction and DataLoader worker stress tests for num_workers 0, 1, 2, and 4 across repeated epochs.",
+      "reason": "Dataset failures can invalidate all training and evaluation claims.",
+      "blocked_on": []
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "updated_at": "2026-08-14T12:00:00Z",
+  "experiments": [
+    {
+      "id": "20260814_local_diagnostics",
+      "kind": "engineering_diagnostic",
+      "status": "completed",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260814_local_diagnostics"
+    }
+  ]
+}

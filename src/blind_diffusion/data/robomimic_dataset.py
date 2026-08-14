@@ -28,15 +28,14 @@ class RoboMimicSequenceDataset(Dataset):
         self.normalize_action = normalize_action
 
         self._h5 = None
-        demo_names = sorted(list(self._h5["data"].keys()))
-        if max_demos is not None:
-            demo_names = demo_names[:max_demos]
-        self.demo_names = demo_names
-
-        self.demo_lens = [self._h5[f"data/{d}/actions"].shape[0] for d in demo_names]
-        self.index = self._build_index()
-
-        obs_all, act_all = self._gather_stats_samples()
+        with h5py.File(self.hdf5_path, "r") as h5:
+            demo_names = sorted(list(h5["data"].keys()))
+            if max_demos is not None:
+                demo_names = demo_names[:max_demos]
+            self.demo_names = demo_names
+            self.demo_lens = [h5[f"data/{d}/actions"].shape[0] for d in demo_names]
+            self.index = self._build_index()
+            obs_all, act_all = self._gather_stats_samples(h5)
         self.obs_mean, self.obs_std = compute_mean_std(obs_all) if normalize_obs else (None, None)
         self.act_mean, self.act_std = compute_mean_std(act_all) if normalize_action else (None, None)
 
@@ -49,36 +48,53 @@ class RoboMimicSequenceDataset(Dataset):
                 idx.append((d, s))
         return idx
 
-    def _gather_stats_samples(self) -> Tuple[np.ndarray, np.ndarray]:
+    def _gather_stats_samples(self, h5: h5py.File) -> Tuple[np.ndarray, np.ndarray]:
         obs_list = []
         act_list = []
         for d in self.demo_names:
-            obs = self._load_obs(d)
-            act = self._h5[f"data/{d}/actions"][:]
+            obs = self._load_obs(h5, d)
+            act = h5[f"data/{d}/actions"][:]
             obs_list.append(obs)
             act_list.append(act)
         obs_all = np.concatenate(obs_list, axis=0)
         act_all = np.concatenate(act_list, axis=0)
         return obs_all, act_all
 
-    def _load_obs(self, demo_name: str) -> np.ndarray:
+    def _load_obs(self, h5: h5py.File, demo_name: str) -> np.ndarray:
         obs_parts = []
         for k in self.obs_keys:
-            obs_parts.append(self._h5[f"data/{demo_name}/obs/{k}"][:])
+            obs_parts.append(h5[f"data/{demo_name}/obs/{k}"][:])
         return np.concatenate(obs_parts, axis=-1)
+
+    def _ensure_h5(self) -> h5py.File:
+        if self._h5 is None:
+            self._h5 = h5py.File(self.hdf5_path, "r")
+        return self._h5
+
+    def _close_h5(self) -> None:
+        if self._h5 is not None:
+            self._h5.close()
+            self._h5 = None
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_h5"] = None
+        return state
+
+    def __del__(self):
+        self._close_h5()
 
     def __len__(self):
         return len(self.index)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        if self._h5 is None:
-            self._h5 = h5py.File(self.hdf5_path, "r")
+        h5 = self._ensure_h5()
         demo, start = self.index[idx]
         end = start + self.seq_len
-        obs = self._load_obs(demo)[start:end]
-        actions = self._h5[f"data/{demo}/actions"][start:end]
-        rewards = self._h5[f"data/{demo}/rewards"][start:end]
-        dones = self._h5[f"data/{demo}/dones"][start:end]
+        obs = self._load_obs(h5, demo)[start:end]
+        actions = h5[f"data/{demo}/actions"][start:end]
+        rewards = h5[f"data/{demo}/rewards"][start:end]
+        dones = h5[f"data/{demo}/dones"][start:end]
 
         if self.normalize_obs:
             obs = normalize(obs, self.obs_mean, self.obs_std)

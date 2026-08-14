@@ -1,0 +1,50 @@
+{
+  "experiment_id": "20260814_local_diagnostics",
+  "timestamp": "2026-08-14T12:00:00Z",
+  "kind": "engineering_diagnostic",
+  "git_commit_frozen": "356dc691381feaf7c269801cb484caaa24fe486c",
+  "git_branch": "codex/blind-diffusion-research-recovery",
+  "dirty_tree_before_fix": false,
+  "baseline_status": "not_executable_locally_as_configured",
+  "environment": {
+    "python": "3.11.13",
+    "venv_python": "/Users/peiyan1/Desktop/Blind-Diffusion/.venv/bin/python",
+    "torch": "2.10.0",
+    "cuda_available": false,
+    "robo_data": null,
+    "hydra_in_venv": false,
+    "robomimic_in_venv": false
+  },
+  "artifacts_checked": {
+    "runs_dir_present": false,
+    "wm_checkpoint_present": false,
+    "diff_checkpoint_present": false
+  },
+  "diagnostics": [
+    {
+      "id": "diag_dataset_init_baseline_lowdim",
+      "result": "failed_before_fix",
+      "failure": "TypeError: 'NoneType' object is not subscriptable"
+    },
+    {
+      "id": "diag_dataset_init_baseline_image",
+      "result": "failed_before_fix",
+      "failure": "TypeError: 'NoneType' object is not subscriptable"
+    },
+    {
+      "id": "diag_rssm_state_carry",
+      "result": "confirmed_state_difference",
+      "note": "Fresh observe_step from zero state and causal carry-forward produce different latent states, supporting the planner-amnesia hypothesis in evaluate_lowdim.py."
+    },
+    {
+      "id": "diag_unittest_rssm",
+      "result": "passed_after_fix",
+      "command": "PYTHONPATH=src ./.venv/bin/python -m unittest tests.test_rssm"
+    },
+    {
+      "id": "diag_unittest_datasets",
+      "result": "passed_after_fix",
+      "command": "PYTHONPATH=src ./.venv/bin/python -m unittest tests.test_datasets"
+    }
+  ]
+}
