@@ -205,3 +205,81 @@ ERROR: Cannot install mujoco<3.0 and >=2.3.0 and mujoco==3.5.0 because these pac
 - add only `--no-deps` to the follow-up requirements and editable repo installs
 - preserve the same train and eval protocol
 - submit with a new run identity
+
+10. `20260815_r1_repaired_reference_vast_retry1`
+   - backend: Vast
+   - run id: `vast-20260815T000203Z-8215-99cea1`
+   - instance id: `47748496`
+   - failure class: engineering
+   - meaningful transition:
+     - the repaired reference system reached the real workload on Vast under Python `3.10`, native MuJoCo `3.x`, `robomimic 0.3.0`, and `robosuite 1.4.1`
+   - first truthful failure:
+
+```text
+ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+```
+
+   - repair:
+     - install system GL libraries on the remote host
+     - explicitly install CUDA PyTorch into the new Python `3.10` environment
+
+11. `20260815_r1_repaired_reference_vast_retry2`
+   - backend: Vast
+   - run id: `vast-20260815T001025Z-11891-46acc1`
+   - failure class: infrastructure
+   - first truthful failure:
+
+```text
+No acceptable offer under hard ceiling $0.350/hr. Cheapest matching offer was $0.363/hr.
+```
+
+   - repair:
+     - retry once with a one-off CLI ceiling of `$0.37/hr`
+     - keep repository pricing/config files unchanged
+
+12. `20260815_r1_repaired_reference_vast_retry3`
+   - backend: Vast
+   - run id: `vast-20260815T001057Z-11909-d47a4c`
+   - instance id: `47748885`
+   - failure class: engineering
+   - meaningful transition:
+     - the repaired reference system again reached the real workload after the GL / torch repair
+   - first truthful failure:
+
+```text
+AttributeError: 'NoneType' object has no attribute 'eglQueryString'
+```
+
+   - interpretation:
+     - headless EGL initialization is still incomplete on the remote host
+   - repair:
+     - install EGL-related system libraries
+     - export `MUJOCO_GL=egl` and `PYOPENGL_PLATFORM=egl`
+
+13. `20260815_r1_repaired_reference_vast_retry4`
+   - backend: Vast
+   - run id: `vast-20260815T001517Z-12567-9caea5`
+   - instance id: `47749103`
+   - failure class: engineering
+   - meaningful transition:
+     - provisioning, upload, setup, and workload launch all completed on an `RTX 4090`
+     - this confirmed that the repaired reference path is executing the real remote script under the intended Python `3.10` / `robomimic 0.3.0` / `robosuite 1.4.1` / native MuJoCo `3.x` stack
+   - first truthful failure:
+
+```text
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+   - interpretation:
+     - the failure occurs in `robomimic.scripts.download_datasets`, so it is a real workload dependency gap rather than a mock or fallback path
+     - this is still an engineering failure and does not justify changing the scientific protocol
+   - repair:
+     - add `matplotlib` to `requirements-vast.txt`
+     - keep the workload, dataset family, task, and model path unchanged
+
+## Planned retry 14
+
+- preserve the same repaired-reference Vast workload
+- preserve the same Python `3.10` / `robomimic 0.3.0` / `robosuite 1.4.1` / native MuJoCo `3.x` environment target
+- add only the missing `matplotlib` dependency to the repo-specific Vast setup
+- submit with a new run identity

@@ -1,6 +1,6 @@
 # Blind-Diffusion Research State
 
-Last updated: Friday, August 14, 2026 UTC
+Last updated: Saturday, August 15, 2026 UTC
 
 ## Current repository state
 
@@ -98,6 +98,12 @@ Last updated: Friday, August 14, 2026 UTC
 - `r1-repaired-branch-reference-run`
 - Goal: establish the first executable repaired-branch reference run after classifying the frozen baseline as non-runnable
 - Artifact target: `research/experiments/20260814_r1_repaired_reference_smoke`
+- Current remote repair:
+  - last run: `vast-20260815T001517Z-12567-9caea5`
+  - instance `47749103`
+  - classification: engineering failure
+  - first truthful failure: `ModuleNotFoundError: No module named 'matplotlib'`
+  - next action: add `matplotlib` to `requirements-vast.txt` and resubmit the identical workload
 
 ## Completed experiments
 
@@ -183,10 +189,10 @@ Last updated: Friday, August 14, 2026 UTC
 3. Local environment still lacks `hydra-core` and `robomimic`.
 4. Local machine has no CUDA device, so latency and control-quality claims still require remote execution.
 5. No repaired-branch reference training or evaluation run has been recorded yet, so there is still no executable control-quality reference point.
-6. Vast backend configuration is prepared locally, but no Vast reference run has been launched yet.
+6. The repaired-system Vast rollout now reaches the real workload, but the remote runtime still has remaining Python dependency gaps after the graphics repairs.
 
 ## Next action
 
-1. Launch the wrapper-based repaired-branch reference run on Vast using `vast-run run --project-root . "<command>"` and the repo-local `.vast/profile.toml`.
-2. If rollout executes, freeze that as the compatibility-reconstructed environment and run the matched `E0` vs `R1` comparison next.
-3. Only after `E0` vs `R1` exists should I expand into blackout robustness or DDIM speed and quality tradeoffs.
+1. Resubmit the repaired-reference Vast workload with the added `matplotlib` dependency and a new run identity.
+2. Keep the environment target, dataset family, task, and repaired-controller logic frozen.
+3. If rollout executes, freeze that as the working reproduction environment and then continue with the remaining deferred Antigravity pieces.

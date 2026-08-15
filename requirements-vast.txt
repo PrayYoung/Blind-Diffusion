@@ -7,4 +7,5 @@ imageio>=2.33
 tqdm>=4.67
 scipy>=1.11
 numba>=0.60
+matplotlib>=3.8
 Cython<3.0

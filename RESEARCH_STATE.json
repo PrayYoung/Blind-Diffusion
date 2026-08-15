@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-14T22:40:00Z"
+    "updated_at": "2026-08-15T00:18:00Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -42,11 +42,11 @@
     "purpose": "Produce the first executable repaired-branch reference run after the frozen baseline has been classified as non-runnable.",
     "design": "Keep the evaluation protocol frozen, use the repo-local Vast backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
     "backend": "local-plus-vast-run",
-    "state": "planned",
-    "job_ref": "",
+    "state": "repairing_remote_infra",
+    "job_ref": "vast-20260815T001517Z-12567-9caea5",
     "output_ref": "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
-    "submitted_at": "2026-08-14T16:20:00Z",
-    "last_checked_at": "2026-08-14T22:40:00Z"
+    "submitted_at": "2026-08-15T00:15:17Z",
+    "last_checked_at": "2026-08-15T00:21:00Z"
   },
   "findings": [
     {
@@ -290,6 +290,33 @@
         "AGENTS.md"
       ],
       "recorded_at": "2026-08-14T22:40:00Z"
+    },
+    {
+      "id": "finding-vast-011",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The repaired Antigravity-style runtime now reaches the real Blind-Diffusion workload on Vast under Python 3.10, native MuJoCo 3.x, robomimic 0.3.0, and robosuite 1.4.1. The remaining failures are narrowed to remote graphics/runtime environment issues rather than repository control logic: first libGL.so.1, then EGL platform initialization. The current active retry after the EGL repair is run_id vast-20260815T001517Z-12567-9caea5 on instance 47749103, currently WAITING_FOR_SSH / UPLOADING.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
+        "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T000203Z-8215-99cea1/remote.log",
+        "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001057Z-11909-d47a4c/remote.log",
+        "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/metadata.json"
+      ],
+      "recorded_at": "2026-08-15T00:18:00Z"
+    },
+    {
+      "id": "finding-vast-012",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "Vast retry 4 completed provisioning, setup, and workload launch, then failed during robomimic's real dataset downloader import path because matplotlib was missing from the Python 3.10 environment. The smallest repo-specific repair is to add matplotlib to requirements-vast.txt and rerun without changing the protocol.",
+      "evidence_refs": [
+        "requirements-vast.txt",
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
+        "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/remote.log"
+      ],
+      "recorded_at": "2026-08-15T00:21:00Z"
     }
   ],
   "candidate_next_experiments": [

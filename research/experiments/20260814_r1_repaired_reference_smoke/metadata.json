@@ -3,7 +3,7 @@
   "timestamp": "2026-08-14T16:20:00Z",
   "kind": "remote_repaired_branch_reference",
   "status": "failed_pending_retry",
-  "git_commit_under_test": "4d65612",
+  "git_commit_under_test": "a0dfef6",
   "git_branch": "codex/blind-diffusion-research-recovery",
   "protocol_version": "repaired-reference-v1",
   "frozen_controls": {
@@ -84,6 +84,47 @@
       "status": "failed",
       "failure_class": "engineering",
       "summary": "The restored create_env_from_metadata / EnvRobosuite path launches on Kaggle, but pip re-resolves dependencies after the explicit compatibility installs and rejects the intended mujoco 3.5.0 override. The smallest remaining repair is to keep the explicit install order and add --no-deps to the follow-up requirements and editable installs."
+    },
+    {
+      "experiment_id": "20260815_r1_repaired_reference_vast_retry1",
+      "status": "failed",
+      "failure_class": "engineering",
+      "backend": "vast",
+      "run_id": "vast-20260815T000203Z-8215-99cea1",
+      "instance_id": 47748496,
+      "summary": "The first repaired-reference Vast rollout reached the real workload under Python 3.10, robomimic 0.3.0, robosuite 1.4.1, and native MuJoCo 3.x, but failed immediately because robosuite's OpenCV path could not load libGL.so.1 on the remote host. The smallest repair was to install the missing system GL libraries and explicitly provision torch inside the new Python 3.10 env."
+    },
+    {
+      "experiment_id": "20260815_r1_repaired_reference_vast_retry2",
+      "status": "failed",
+      "failure_class": "infrastructure",
+      "backend": "vast",
+      "run_id": "vast-20260815T001025Z-11891-46acc1",
+      "instance_id": null,
+      "summary": "The second Vast retry did not provision because no acceptable RTX 4090 offer was available under the default hard ceiling of $0.35/hr. A one-off CLI retry with a $0.37/hr ceiling preserved the repository configuration and scientific protocol."
+    },
+    {
+      "experiment_id": "20260815_r1_repaired_reference_vast_retry3",
+      "status": "failed",
+      "failure_class": "engineering",
+      "backend": "vast",
+      "run_id": "vast-20260815T001057Z-11909-d47a4c",
+      "instance_id": 47748885,
+      "summary": "After adding libGL and torch to the Python 3.10 env, the next Vast retry again reached the real workload and failed later during MuJoCo / robosuite headless initialization: the EGL platform was unavailable and PyOpenGL raised AttributeError on eglQueryString. The next repair was to install EGL-related system libraries and export MUJOCO_GL=egl / PYOPENGL_PLATFORM=egl for the workload."
+    },
+    {
+      "experiment_id": "20260815_r1_repaired_reference_vast_retry4",
+      "status": "failed",
+      "failure_class": "engineering",
+      "backend": "vast",
+      "run_id": "vast-20260815T001517Z-12567-9caea5",
+      "instance_id": 47749103,
+      "summary": "The repaired-reference Vast retry passed provisioning, upload, setup, and workload launch on an RTX 4090, then failed immediately in robomimic's real dataset download path because matplotlib was absent from the Python 3.10 environment. The smallest repair is to add matplotlib to the repo-specific Vast requirements and rerun the identical workload.",
+      "logs": {
+        "remote_log": "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/remote.log",
+        "outputs_dir": "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/synced_outputs",
+        "metadata": "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/metadata.json"
+      }
     }
   ],
   "evidence": {
