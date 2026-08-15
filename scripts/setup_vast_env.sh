@@ -17,7 +17,7 @@ fi
 conda activate "$ENV_NAME"
 
 apt-get update
-apt-get install -y --no-install-recommends libgl1 libglib2.0-0
+apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libegl1 libgles2
 
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install --no-input --no-cache-dir -r requirements-vast.txt

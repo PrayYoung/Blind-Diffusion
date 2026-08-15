@@ -15,6 +15,8 @@ conda activate "$ENV_NAME"
 
 export ROBO_DATA="$DATA_ROOT"
 export PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR:${PYTHONPATH:-}"
+export MUJOCO_GL="${MUJOCO_GL:-egl}"
+export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 
 mkdir -p "$OUTPUT_ROOT" "$RUNS_ROOT" "$EVAL_ROOT" "$DATA_ROOT"
 
