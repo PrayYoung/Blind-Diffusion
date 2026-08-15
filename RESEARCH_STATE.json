@@ -282,12 +282,9 @@
       "id": "finding-infra-010",
       "question_id": "blind-diffusion-recovery-2026-08-14",
       "kind": "engineering",
-      "summary": "The repository is now prepared to use the existing local Vast GPU backend instead of Kaggle. Repo-local Vast configuration files, a wrapper entrypoint, and a dedicated remote setup script have been added without launching a run yet. The next remote reference attempt should use ./infra/vast_run.sh with .vast/profile.toml.",
+      "summary": "The repository is now prepared to use the existing global Vast GPU backend instead of Kaggle. The repo keeps only project-specific Vast configuration and dependency setup files, without vendoring a local lifecycle wrapper. The next remote reference attempt should call vast-run directly with the repo-local .vast/profile.toml.",
       "evidence_refs": [
         ".vast/profile.toml",
-        ".vast/profile.example.toml",
-        "infra/vast_run.sh",
-        "infra/vast_config.example.env",
         "scripts/setup_vast_env.sh",
         "requirements-vast.txt",
         "AGENTS.md"

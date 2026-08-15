@@ -28,10 +28,11 @@ This repository is being recovered as a research project, not a patch task.
 
 - Use the existing Vast GPU workflow already present on this machine as the active remote backend.
 - Preferred entrypoint:
-  - `./infra/vast_run.sh "<command>"`
+  - `vast-run run --project-root . "<command>"`
 - Repo-specific Vast settings belong in:
   - `.vast/profile.toml`
-  - optional `infra/vast_config.env`
+  - `requirements-vast.txt`
+  - `scripts/setup_vast_env.sh` when Blind-Diffusion needs setup logic beyond a single inline install command
 - Keep credentials, SSH keys, host history, and shared lifecycle / pricing policy in the global `vast-run` config rather than this repository.
 - Historical Kaggle tooling may remain locally for recovery provenance, but treat it as local research infrastructure rather than the primary backend going forward.
 

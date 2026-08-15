@@ -33,7 +33,7 @@ Last updated: Friday, August 14, 2026 UTC
 - Baseline checkpoints discovered locally: none discovered yet in the local repository
 - Local runtime discovered: `.venv/bin/python` exists, local `uv` binary does not
 - Active remote backend prepared on Friday, August 14, 2026:
-  - Vast runner via `./infra/vast_run.sh`
+  - global `vast-run` via `vast-run run --project-root . "<command>"`
   - repo profile: `.vast/profile.toml`
   - remote setup script: `scripts/setup_vast_env.sh`
 - Historical Kaggle workflow retained locally for provenance:
@@ -187,6 +187,6 @@ Last updated: Friday, August 14, 2026 UTC
 
 ## Next action
 
-1. Launch the wrapper-based repaired-branch reference run on Vast using `./infra/vast_run.sh` and the repo-local `.vast/profile.toml`.
+1. Launch the wrapper-based repaired-branch reference run on Vast using `vast-run run --project-root . "<command>"` and the repo-local `.vast/profile.toml`.
 2. If rollout executes, freeze that as the compatibility-reconstructed environment and run the matched `E0` vs `R1` comparison next.
 3. Only after `E0` vs `R1` exists should I expand into blackout robustness or DDIM speed and quality tradeoffs.

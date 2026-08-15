@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install --no-input --no-cache-dir -r requirements-vast.txt
+ENV_NAME="blind_diffusion_py310"
 
-# Match the reference wrapper-based stack before adding the project itself.
-python3 -m pip install --no-input --no-cache-dir "mujoco>=3.1.0" "robosuite==1.4.1"
-python3 -m pip install --no-input --no-cache-dir "robomimic==0.3.0" --no-deps
+if ! command -v conda >/dev/null 2>&1; then
+  echo "conda is required in the Vast image to provision the Python 3.10 runtime" >&2
+  exit 1
+fi
 
-# Install Blind-Diffusion last so local source changes are visible remotely
+eval "$(conda shell.bash hook)"
+
+if ! conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
+  conda create -y -n "$ENV_NAME" python=3.10
+fi
+
+conda activate "$ENV_NAME"
+
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --no-input --no-cache-dir -r requirements-vast.txt
+
+# Match the Antigravity target environment before installing local source.
+python -m pip install --no-input --no-cache-dir "mujoco>=3.1.0,<4.0" "robosuite==1.4.1"
+python -m pip install --no-input --no-cache-dir "robomimic==0.3.0" --no-deps
+
+# Install Blind-Diffusion last so remote code uses the transferred snapshot
 # without letting pip re-resolve the robomimic / robosuite stack.
-python3 -m pip install --no-input --no-cache-dir --no-deps -e .
+python -m pip install --no-input --no-cache-dir --no-deps -e .
