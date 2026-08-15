@@ -283,3 +283,46 @@ ModuleNotFoundError: No module named 'matplotlib'
 - preserve the same Python `3.10` / `robomimic 0.3.0` / `robosuite 1.4.1` / native MuJoCo `3.x` environment target
 - add only the missing `matplotlib` dependency to the repo-specific Vast setup
 - submit with a new run identity
+
+14. `20260815_r1_repaired_reference_vast_retry5`
+   - backend: Vast
+   - run id: `vast-20260815T002237Z-13447-ea2fb7`
+   - failure class: engineering
+   - meaningful transition:
+     - rented host: `332635`
+     - location: `Indiana, US`
+     - GPU: `RTX 4090`
+     - hourly price: `$0.356/hr`
+     - instance id: `47749465`
+     - runner-managed phases reached: `PROVISIONING` -> `WAITING_FOR_SSH` -> `UPLOADING` -> `SETTING_UP` -> `RUNNING`
+     - repository snapshot under test: `c3ede09`
+     - change relative to retry 4: add `matplotlib` to `requirements-vast.txt`
+      - verified runtime banner:
+        - Python `3.10.20`
+        - `torch 2.4.0+cu124`
+        - CUDA available
+        - `mujoco 3.11.0`
+        - `robomimic 0.3.0`
+        - `robosuite 1.4.1`
+      - frozen dataset download succeeded:
+        - `low_dim_v141.hdf5`
+   - first truthful failure:
+
+```text
+ModuleNotFoundError: No module named 'blind_diffusion.env'
+```
+
+   - interpretation:
+     - this is now a repository packaging issue in the regression test path, not a backend or dependency-stack failure
+     - the Antigravity target environment has effectively been reconstructed on Vast
+   - repair:
+     - add `src/blind_diffusion/env/__init__.py`
+     - keep the workload, task, dataset family, and controller logic unchanged
+
+## Planned retry 15
+
+- preserve the same repaired-reference Vast workload
+- preserve the same Python `3.10` / `robomimic 0.3.0` / `robosuite 1.4.1` / native MuJoCo `3.x` environment target
+- preserve the frozen `low_dim_v141.hdf5` dataset family
+- add only `src/blind_diffusion/env/__init__.py` to fix the repository package import
+- submit with a new run identity

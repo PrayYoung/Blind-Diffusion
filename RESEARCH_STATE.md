@@ -99,11 +99,20 @@ Last updated: Saturday, August 15, 2026 UTC
 - Goal: establish the first executable repaired-branch reference run after classifying the frozen baseline as non-runnable
 - Artifact target: `research/experiments/20260814_r1_repaired_reference_smoke`
 - Current remote repair:
-  - last run: `vast-20260815T001517Z-12567-9caea5`
-  - instance `47749103`
-  - classification: engineering failure
-  - first truthful failure: `ModuleNotFoundError: No module named 'matplotlib'`
-  - next action: add `matplotlib` to `requirements-vast.txt` and resubmit the identical workload
+  - last run: `vast-20260815T002237Z-13447-ea2fb7`
+  - instance `47749465`
+  - classification: engineering failure after real workload start
+  - reconstructed environment reached:
+    - Python `3.10.20`
+    - `torch 2.4.0+cu124` with CUDA available
+    - `mujoco 3.11.0`
+    - `robomimic 0.3.0`
+    - `robosuite 1.4.1`
+    - successful `low_dim_v141.hdf5` download
+  - host `332635`, `Indiana, US`, `RTX 4090`, `$0.356/hr`
+  - repository snapshot under test: `c3ede09`
+  - first truthful remaining failure: `ModuleNotFoundError: No module named 'blind_diffusion.env'`
+  - most recent repair in progress: add `src/blind_diffusion/env/__init__.py`
 
 ## Completed experiments
 
@@ -193,6 +202,6 @@ Last updated: Saturday, August 15, 2026 UTC
 
 ## Next action
 
-1. Resubmit the repaired-reference Vast workload with the added `matplotlib` dependency and a new run identity.
+1. Commit the package-marker repair and resubmit the identical Vast workload with a new run identity.
 2. Keep the environment target, dataset family, task, and repaired-controller logic frozen.
-3. If rollout executes, freeze that as the working reproduction environment and then continue with the remaining deferred Antigravity pieces.
+3. If the next retry clears the regression tests and reaches training plus low-dimensional rollout, freeze that as the working reproduction environment.

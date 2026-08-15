@@ -43,10 +43,10 @@
     "design": "Keep the evaluation protocol frozen, use the repo-local Vast backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
     "backend": "local-plus-vast-run",
     "state": "repairing_remote_infra",
-    "job_ref": "vast-20260815T001517Z-12567-9caea5",
+    "job_ref": "vast-20260815T002237Z-13447-ea2fb7",
     "output_ref": "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
-    "submitted_at": "2026-08-15T00:15:17Z",
-    "last_checked_at": "2026-08-15T00:21:00Z"
+    "submitted_at": "2026-08-15T00:22:37Z",
+    "last_checked_at": "2026-08-15T00:30:53Z"
   },
   "findings": [
     {
@@ -317,6 +317,54 @@
         "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/remote.log"
       ],
       "recorded_at": "2026-08-15T00:21:00Z"
+    },
+    {
+      "id": "finding-vast-013",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "After committing the matplotlib fix as c3ede09, a new repaired-reference Vast retry was submitted as run_id vast-20260815T002237Z-13447-ea2fb7. The run entered PROVISIONING under the unchanged repaired-reference workload and the same one-off $0.37/hr ceiling used for successful 4090 provisioning.",
+      "evidence_refs": [
+        "requirements-vast.txt",
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md"
+      ],
+      "recorded_at": "2026-08-15T00:22:37Z"
+    },
+    {
+      "id": "finding-vast-014",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The matplotlib-fixed Vast retry rented host 332635 in Indiana on an RTX 4090 at $0.356/hr, received instance 47749465, and advanced through WAITING_FOR_SSH into UPLOADING. The remote execution path is progressing normally so the next truthful signal should come from setup, workload start, or a new runtime failure.",
+      "evidence_refs": [
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md"
+      ],
+      "recorded_at": "2026-08-15T00:24:00Z"
+    },
+    {
+      "id": "finding-vast-015",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "The active Vast retry crossed the infrastructure boundary and reached PHASE RUNNING for bash scripts/run_repaired_reference_smoke.sh on instance 47749465. This confirms the remote host accepted the updated repo snapshot c3ede09 and is executing the real repaired-reference workload with the matplotlib fix included.",
+      "evidence_refs": [
+        "requirements-vast.txt",
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md"
+      ],
+      "recorded_at": "2026-08-15T00:28:30Z"
+    },
+    {
+      "id": "finding-vast-016",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "Vast retry 5 reproduced the target remote environment and dataset path in real execution: Python 3.10.20, CUDA-enabled torch 2.4.0+cu124, MuJoCo 3.11.0, robomimic 0.3.0, robosuite 1.4.1, and a successful low_dim_v141.hdf5 download. The first truthful remaining failure is a repository packaging issue: src/blind_diffusion/env lacked an __init__.py package marker, causing tests/test_env_metadata.py to fail importing blind_diffusion.env.robomimic_env.",
+      "evidence_refs": [
+        "src/blind_diffusion/env/__init__.py",
+        "research/experiments/20260814_r1_repaired_reference_smoke/metadata.json",
+        "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
+        "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T002237Z-13447-ea2fb7/remote.log"
+      ],
+      "recorded_at": "2026-08-15T00:30:53Z"
     }
   ],
   "candidate_next_experiments": [

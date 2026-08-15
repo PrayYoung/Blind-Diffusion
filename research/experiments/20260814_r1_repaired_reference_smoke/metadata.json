@@ -125,6 +125,15 @@
         "outputs_dir": "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/synced_outputs",
         "metadata": "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T001517Z-12567-9caea5/metadata.json"
       }
+    },
+    {
+      "experiment_id": "20260815_r1_repaired_reference_vast_retry5",
+      "status": "failed",
+      "failure_class": "engineering",
+      "backend": "vast",
+      "run_id": "vast-20260815T002237Z-13447-ea2fb7",
+      "instance_id": 47749465,
+      "summary": "The matplotlib-fixed Vast retry fully reproduced the target remote stack in real execution: Python 3.10.20, CUDA-enabled torch 2.4.0+cu124, MuJoCo 3.11.0, robomimic 0.3.0, robosuite 1.4.1, and the frozen low_dim_v141.hdf5 dataset download. The first truthful remaining failure is repository-side: tests/test_env_metadata.py imports blind_diffusion.env.robomimic_env, but src/blind_diffusion/env lacked an __init__.py package marker in the transferred snapshot. The smallest repair is to add that package marker and rerun the identical workload."
     }
   ],
   "evidence": {
