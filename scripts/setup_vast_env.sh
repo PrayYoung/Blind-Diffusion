@@ -16,8 +16,14 @@ fi
 
 conda activate "$ENV_NAME"
 
+apt-get update
+apt-get install -y --no-install-recommends libgl1 libglib2.0-0
+
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install --no-input --no-cache-dir -r requirements-vast.txt
+python -m pip install --no-input --no-cache-dir \
+  --index-url https://download.pytorch.org/whl/cu124 \
+  torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0
 
 # Match the Antigravity target environment before installing local source.
 python -m pip install --no-input --no-cache-dir "mujoco>=3.1.0,<4.0" "robosuite==1.4.1"
