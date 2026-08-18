@@ -167,11 +167,8 @@ def main(cfg):
             block_active = _sensor_block_active(steps, cfg.eval)
             low = None
             if block_active and cfg.eval.sensor_block.get("mode", "zero") == "prior":
-                x = torch.cat([z, prev_action], dim=-1)
-                h = wm.rssm.gru(x, h)
-                prior_params = wm.rssm.prior_net(h)
-                prior_mean, prior_std = wm.rssm._get_stats(prior_params)
-                z = wm.rssm._sample(prior_mean, prior_std)
+                prior_state = wm.rssm.imagine_step(prev_action, {"h": h, "z": z})
+                h, z = prior_state["h"], prior_state["z"]
             else:
                 img = _apply_sensor_block(img, steps, cfg.eval)
                 low = _obs_to_lowdim(obs, cfg.task.get("lowdim_keys", []))

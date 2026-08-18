@@ -98,6 +98,7 @@ def main(cfg):
             done = False
             success = 0.0
             collision = 0.0
+            ep_return = 0.0
             steps = 0
             while not done and steps < max_steps:
                 obs_vec = _obs_to_vec(obs, low_dim_keys).to(device)
@@ -106,12 +107,13 @@ def main(cfg):
                 action_env = _denormalize(action, act_mean, act_std)
                 action_env = torch.clamp(action_env, action_low, action_high).cpu().numpy()
                 obs, reward, done, info = env.step(action_env)
+                ep_return += float(reward)
                 if info.get("success", False):
                     success = 1.0
                 if info.get("collision", False) or info.get("violation", False):
                     collision = 1.0
                 steps += 1
-            episodes.append({"success": success, "collision": collision})
+            episodes.append({"success": success, "collision": collision, "return": ep_return, "length": steps})
     elif mode == "random":
         policy = RandomPolicy(action_dim, low=float(action_low.min()), high=float(action_high.max()))
         episodes = []
@@ -120,16 +122,18 @@ def main(cfg):
             done = False
             success = 0.0
             collision = 0.0
+            ep_return = 0.0
             steps = 0
             while not done and steps < max_steps:
                 action_env = policy(None).numpy()
                 obs, reward, done, info = env.step(action_env)
+                ep_return += float(reward)
                 if info.get("success", False):
                     success = 1.0
                 if info.get("collision", False) or info.get("violation", False):
                     collision = 1.0
                 steps += 1
-            episodes.append({"success": success, "collision": collision})
+            episodes.append({"success": success, "collision": collision, "return": ep_return, "length": steps})
     else:
         episodes = []
         for _ in tqdm(range(cfg.episodes), desc="eval_lowdim_mpc", leave=True):
@@ -137,26 +141,26 @@ def main(cfg):
             done = False
             success = 0.0
             collision = 0.0
-
-            # initial latent via a single-step posterior
-            obs_vec = _obs_to_vec(obs, low_dim_keys).unsqueeze(0).unsqueeze(0).to(device)
-            obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
-            act_zero = torch.zeros(1, 1, action_dim, device=device)
-            post = wm.rssm.observe(wm.encoder(obs_vec_n), act_zero)
-            state = {"h": post["h"][:, -1], "z": post["z"][:, -1]}
+            ep_return = 0.0
+            state = {
+                "h": torch.zeros(1, cfg.model.rssm.deter_dim, device=device),
+                "z": torch.zeros(1, cfg.model.rssm.stoch_dim, device=device),
+            }
+            prev_action = torch.zeros(1, action_dim, device=device)
 
             steps = 0
             while not done and steps < max_steps:
+                obs_vec = _obs_to_vec(obs, low_dim_keys).unsqueeze(0).to(device)
+                obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
+                obs_embed = wm.encoder(obs_vec_n)
+                state = wm.rssm.observe_step(obs_embed, prev_action, state)
+
                 action_n = planner.plan(state, wm, cfg.planner.terminal_penalty, cfg.planner.constraint_penalty)
                 action_env = _denormalize(action_n, act_mean, act_std)
                 action_env = torch.clamp(action_env, action_low, action_high).detach().cpu().numpy()
                 obs, reward, done, info = env.step(action_env)
-
-                obs_vec = _obs_to_vec(obs, low_dim_keys).unsqueeze(0).unsqueeze(0).to(device)
-                obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
-                act_t = action_n.float().unsqueeze(0).unsqueeze(0).to(device)
-                post = wm.rssm.observe(wm.encoder(obs_vec_n), act_t)
-                state = {"h": post["h"][:, -1], "z": post["z"][:, -1]}
+                prev_action = action_n.float().unsqueeze(0).to(device)
+                ep_return += float(reward)
 
                 if info.get("success", False):
                     success = 1.0
@@ -164,7 +168,7 @@ def main(cfg):
                     collision = 1.0
                 steps += 1
 
-            episodes.append({"success": success, "collision": collision})
+            episodes.append({"success": success, "collision": collision, "return": ep_return, "length": steps})
 
     metrics = summarize_episode_metrics(episodes)
     run_dir = os.path.join(cfg.run_dir, cfg.exp_name)

@@ -27,6 +27,12 @@ checkpoints/
 # Env
 .env
 
+# Local research orchestration and remote-run artifacts
+.codex/
+.runpod/
+.vast/
+research/experiments/
+
 # Legacy
 model/__pycache__/
 

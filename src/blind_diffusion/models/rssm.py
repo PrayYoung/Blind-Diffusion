@@ -47,6 +47,23 @@ class RSSM(nn.Module):
         z = self._sample(post_mean, post_std)
         return {"h": h, "z": z}
 
+    def imagine_step(self, action: torch.Tensor, state: dict):
+        # action: [B, action_dim]
+        h = state["h"]
+        z = state["z"]
+        x = torch.cat([z, action], dim=-1)
+        h = self.gru(x, h)
+
+        prior_params = self.prior_net(h)
+        prior_mean, prior_std = self._get_stats(prior_params)
+        z = self._sample(prior_mean, prior_std)
+        return {
+            "h": h,
+            "z": z,
+            "prior_mean": prior_mean,
+            "prior_std": prior_std,
+        }
+
     def observe(self, obs_seq: torch.Tensor, action_seq: torch.Tensor):
         # obs_seq: [B, T, obs_dim], action_seq: [B, T, action_dim]
         B, T, _ = obs_seq.shape
@@ -94,18 +111,13 @@ class RSSM(nn.Module):
         prior_means, prior_stds = [], []
 
         for t in range(T):
-            a = action_seq[:, t]
-            x = torch.cat([z, a], dim=-1)
-            h = self.gru(x, h)
-
-            prior_params = self.prior_net(h)
-            prior_mean, prior_std = self._get_stats(prior_params)
-            z = self._sample(prior_mean, prior_std)
-
-            hs.append(h)
-            zs.append(z)
-            prior_means.append(prior_mean)
-            prior_stds.append(prior_std)
+            step = self.imagine_step(action_seq[:, t], {"h": h, "z": z})
+            h = step["h"]
+            z = step["z"]
+            hs.append(step["h"])
+            zs.append(step["z"])
+            prior_means.append(step["prior_mean"])
+            prior_stds.append(step["prior_std"])
 
         return {
             "h": torch.stack(hs, dim=1),
