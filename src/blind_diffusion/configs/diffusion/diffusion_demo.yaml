@@ -2,3 +2,4 @@ horizon: 8
 base_ch: 64
 timesteps: 100
 schedule: cosine
+prediction_type: x0

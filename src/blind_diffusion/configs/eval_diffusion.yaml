@@ -15,6 +15,10 @@ max_steps: 500
 eval:
   mode: rhc
 
+normalize_action: false
+sampler: ddim
+inference_steps: 10
+
 # checkpoints
 wm_checkpoint: runs/wm_lift/checkpoints/best.pt
 diff_checkpoint: runs/diff_lift/checkpoints/diffusion_epoch_9.pt

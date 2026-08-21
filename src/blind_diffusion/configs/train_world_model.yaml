@@ -12,6 +12,8 @@ burn_in: 5
 batch_size: 64
 num_workers: 4
 val_fraction: 0.02
+normalize_obs: true
+normalize_action: false
 
 # optimization
 lr: 3.0e-4

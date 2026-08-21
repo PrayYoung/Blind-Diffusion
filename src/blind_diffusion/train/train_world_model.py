@@ -16,6 +16,7 @@ from blind_diffusion.models.encoders import MLPEncoder
 from blind_diffusion.models.rssm import RSSM
 from blind_diffusion.models.heads import RewardHead, DoneHead, ObsHead
 from blind_diffusion.models.losses import kl_normal, mse_loss, bce_logits_loss
+from blind_diffusion.train.beliefs import previous_actions
 
 
 class WorldModel(torch.nn.Module):
@@ -39,8 +40,11 @@ class WorldModel(torch.nn.Module):
         self.obs_head = ObsHead(feat_dim, obs_dim, cfg_model.heads.obs_hidden)
 
     def forward(self, obs_seq, action_seq):
+        # state[t] is the posterior belief for obs[t], after the transition
+        # caused by action[t - 1]. This is also the policy decision state for
+        # choosing action[t].
         obs_embed = self.encoder(obs_seq)
-        post = self.rssm.observe(obs_embed, action_seq)
+        post = self.rssm.observe(obs_embed, previous_actions(action_seq))
         feat = torch.cat([post["h"], post["z"]], dim=-1)
         reward_pred = self.reward_head(feat)
         done_logits = self.done_head(feat)
@@ -56,15 +60,17 @@ def compute_loss(batch, model: WorldModel, burn_in: int, kl_free_bits: float, kl
 
     post, obs_pred, reward_pred, done_logits = model(obs, actions)
 
-    start = burn_in
-    obs_loss = mse_loss(obs_pred[:, start:], obs[:, start:])
-    reward_loss = mse_loss(reward_pred[:, start:], rewards[:, start:])
-    done_loss = bce_logits_loss(done_logits[:, start:], dones[:, start:])
+    # state[t] reconstructs obs[t]; state[t + 1] is the first state after
+    # action[t], so reward/done[t] are decoded from that next state.
+    state_start = burn_in + 1
+    obs_loss = mse_loss(obs_pred[:, state_start:], obs[:, state_start:])
+    reward_loss = mse_loss(reward_pred[:, state_start:], rewards[:, burn_in:-1])
+    done_loss = bce_logits_loss(done_logits[:, state_start:], dones[:, burn_in:-1])
 
     kl = kl_normal(post["post_mean"], post["post_std"], post["prior_mean"], post["prior_std"]).sum(-1)
     if kl_free_bits > 0:
         kl = torch.clamp(kl, min=kl_free_bits)
-    kl_loss = kl[:, start:].mean() * kl_scale
+    kl_loss = kl[:, state_start:].mean() * kl_scale
 
     total = obs_loss + reward_loss + done_loss + kl_loss
     return total, {
@@ -83,6 +89,8 @@ def build_loaders(cfg):
         obs_keys=cfg.task.obs_keys,
         seq_len=cfg.seq_len,
         burn_in=cfg.burn_in,
+        normalize_obs=cfg.normalize_obs,
+        normalize_action=cfg.normalize_action,
     )
     val_size = int(len(dataset) * cfg.val_fraction)
     train_size = len(dataset) - val_size

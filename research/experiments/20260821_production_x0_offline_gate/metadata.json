@@ -1,0 +1,26 @@
+{
+  "id": "20260821_production_x0_offline_gate",
+  "kind": "offline_production_code_validation",
+  "status": "completed_gate_pass",
+  "runpod_run_id": "runpod-20260821T053611Z-24ada889",
+  "hypothesis": "The production bounded direct-x0 GaussianDiffusion loss and DDIM/DDPM samplers reproduce the diagnostic held-out causal-imitation gate.",
+  "test": "300 causal WM updates, frozen WM, 1,000 production-diffusion updates, and held-out DDIM-10/DDPM-100 evaluation without evaluator action clipping.",
+  "preregistered_gate": {"ddim10_mse_max": 0.45, "mean_correlation_min": 0.10, "action_absmax_max": 1.000001},
+  "no_simulator": true,
+  "completed_at": "2026-08-21T05:40:15Z",
+  "runtime_seconds": 244,
+  "effective_hourly_price_usd": 0.22,
+  "estimated_compute_cost_usd": 0.015,
+  "result_ref": ".runpod/runs/runpod-20260821T053611Z-24ada889/artifacts/outputs/production_x0_offline_gate.json",
+  "result": {
+    "prediction_type": "x0",
+    "heldout_demos": 40,
+    "heldout_chunks": 29,
+    "ddim10_mse": 0.018388841301202774,
+    "ddpm100_mse": 0.013647574931383133,
+    "mean_correlation": 0.5523111387330617,
+    "ddim_absmax": 0.9999948143959045,
+    "ddpm_absmax": 0.9999949932098389,
+    "gate_pass": true
+  }
+}

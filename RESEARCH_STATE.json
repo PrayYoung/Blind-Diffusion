@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Blind-Diffusion",
-    "updated_at": "2026-08-15T00:18:00Z"
+    "updated_at": "2026-08-21T05:40:15Z"
   },
   "active_question": {
     "id": "blind-diffusion-recovery-2026-08-14",
@@ -10,24 +10,20 @@
     "summary": "Freeze the current baseline at commit 356dc691381feaf7c269801cb484caaa24fe486c, verify reported correctness bugs independently, then run controlled reproduction experiments before any broader research."
   },
   "current_hypothesis": {
-    "id": "hyp-r1-recurrent-state-and-dataset-lifecycle",
-    "statement": "The current repository still contains at least two correctness bugs: low-dimensional evaluation resets RSSM state incorrectly each environment step, and the RoboMimic HDF5 datasets dereference an unopened shared handle during initialization and are unsafe for multi-worker loading.",
+    "id": "hyp-r7-prediction-parameterization",
+    "statement": "At terminal cosine SNR, epsilon prediction is intrinsically ill-conditioned for x0 reconstruction; direct x0 or velocity prediction will make the same UNet pass the synthetic fresh-noise x0 gate.",
     "falsifiable": true,
     "frozen_at": "2026-08-14T00:00:00Z",
     "success_criteria": [
-      "Trace code paths and execute focused diagnostics that either confirm or refute the recurrent-state reset hypothesis without changing unrelated logic.",
-      "Run dataset initialization and worker-count stress tests that classify the HDF5 issue as a real bug, a false alarm, or a narrower failure mode.",
-      "Preserve the frozen baseline commit and protocol before applying any correctness fix."
+      "Under fixed full-cosine schedule, target, condition, architecture, and 5,000-update budget, direct x0 or velocity prediction reaches fresh x0 MSE at most 0.01 while epsilon prediction does not."
     ],
     "failure_criteria": [
-      "Evidence shows recurrent state already propagates causally across low-dimensional control steps.",
-      "Evidence shows dataset initialization and multi-worker loading are already safe in the current repository."
+      "All prediction parameterizations remain above the frozen x0 MSE threshold, indicating epsilon parameterization alone is not sufficient to explain the failure."
     ],
     "primary_metrics": [
-      "Deterministic recurrent state persistence across timesteps",
-      "Dataset initialization success",
-      "DataLoader stability across num_workers in {0,1,2,4}",
-      "Baseline success rate, return, and latency once execution is available"
+      "Fresh target-prediction MSE by timestep bin",
+      "Fresh x0 reconstruction MSE",
+      "alpha_bar at the terminal trained timestep"
     ],
     "baseline_refs": [
       "git:356dc691381feaf7c269801cb484caaa24fe486c",
@@ -38,15 +34,15 @@
     ]
   },
   "active_experiment": {
-    "id": "r1-repaired-branch-reference-run",
-    "purpose": "Produce the first executable repaired-branch reference run after the frozen baseline has been classified as non-runnable.",
-    "design": "Keep the evaluation protocol frozen, use the repo-local Vast backend on the repaired branch, and run the smallest train-then-eval path that can establish a truthful post-repair reference point without introducing DDIM or new robustness logic.",
-    "backend": "local-plus-vast-run",
-    "state": "repairing_remote_infra",
-    "job_ref": "vast-20260815T002237Z-13447-ea2fb7",
-    "output_ref": "research/experiments/20260814_r1_repaired_reference_smoke/notes.md",
-    "submitted_at": "2026-08-15T00:22:37Z",
-    "last_checked_at": "2026-08-15T00:30:53Z"
+    "id": "20260821-production-x0-offline-gate",
+    "purpose": "Validate the bounded direct-x0 production implementation on held-out causal demo imitation before any simulator run.",
+    "design": "Train a 300-update causal WM, freeze it, train production direct-x0 diffusion for 1,000 updates, then evaluate held-out chunks with DDIM-10 and DDPM-100 without final action clipping.",
+    "backend": "runpod_gpu",
+    "state": "analyzed",
+    "job_ref": "runpod-20260821T053611Z-24ada889",
+    "output_ref": ".runpod/runs/runpod-20260821T053611Z-24ada889/artifacts/outputs/production_x0_offline_gate.json",
+    "submitted_at": "2026-08-21T05:36:11Z",
+    "last_checked_at": "2026-08-21T05:40:15Z"
   },
   "findings": [
     {
@@ -365,6 +361,52 @@
         "/Users/peiyan1/.local/share/vast-run/projects/blind-diffusion-6671d35a/runs/vast-20260815T002237Z-13447-ea2fb7/remote.log"
       ],
       "recorded_at": "2026-08-15T00:30:53Z"
+    },
+    {
+      "id": "finding-r1-100k-artifact-001",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "engineering",
+      "summary": "RunPod run runpod-20260819T022902Z-3b9dfc82 completed the unchanged 100k repaired-system science workload with command exit code 0, but its one-shot output synchronization failed after a connection reset. Its scientific artifacts and metrics are unavailable; classify the event as SCIENCE_WORKLOAD_COMPLETED / ARTIFACT_RECOVERY_FAILED, not a scientific outcome.",
+      "evidence_refs": [
+        ".runpod/runs/runpod-20260819T022902Z-3b9dfc82/metadata.json"
+      ],
+      "recorded_at": "2026-08-19T13:04:10Z"
+    },
+    {
+      "id": "finding-r1-100k-result-002",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "rejected_hypothesis",
+      "summary": "The frozen repaired-system reconstructed-performance-v2-100k protocol did not yield task learning: all 60 MPC evaluation episodes across seeds 0/1/2 had zero return, zero successes, zero collisions, and length 500. The completed fixed traces still show time-varying MPC actions, end-effector motion, and changing RSSM states, so this is classified STILL_NO_TASK_LEARNING rather than an inert control path. It does not prove training is bug-free.",
+      "evidence_refs": [
+        ".runpod/runs/runpod-20260819T155535Z-96a19daa/artifacts/outputs/repaired_performance_v2_100k/result.json",
+        ".runpod/runs/runpod-20260819T155535Z-96a19daa/artifacts/outputs/repaired_performance_v2_100k/seed_0/trace_mpc.json",
+        ".runpod/runs/runpod-20260819T155535Z-96a19daa/artifacts/outputs/repaired_performance_v2_100k/seed_1/trace_mpc.json",
+        ".runpod/runs/runpod-20260819T155535Z-96a19daa/artifacts/outputs/repaired_performance_v2_100k/seed_2/trace_mpc.json"
+      ],
+      "recorded_at": "2026-08-19T21:49:07Z"
+    }
+    ,{
+      "id": "finding-r8-x0-parameterization-offline-gate",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "The shared UNet is not the root failure: under the same 100-step cosine schedule, direct x0 prediction passes the one-target gate (fresh x0 MSE 1.57e-5) and v prediction passes (0.00748), while epsilon prediction has x0 MSE 2186.47. A tanh-bounded x0 output then passes held-out causal imitation without final action clipping: DDIM-10 MSE 0.01840, correlation 0.552, absmax 0.999995; DDPM-100 MSE 0.01364 and absmax 0.999995.",
+      "evidence_refs": [
+        ".runpod/runs/runpod-20260820T034601Z-5b3f8bba/artifacts/outputs/parameterization_score_gate.json",
+        ".runpod/runs/runpod-20260820T232537Z-3372dc6a/artifacts/outputs/x0_heldout_imitation_gate.json",
+        ".runpod/runs/runpod-20260821T044929Z-d64c8833/artifacts/outputs/bounded_x0_sampler_gate.json"
+      ],
+      "recorded_at": "2026-08-21T05:07:00Z"
+    },
+    {
+      "id": "finding-r9-production-bounded-x0-gate",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "kind": "established",
+      "summary": "The production bounded direct-x0 path passes the preregistered demonstration-disjoint causal offline gate. With a 300-update causal WM and 1,000 diffusion updates, DDIM-10 achieved MSE 0.0183888 and mean correlation 0.552311; DDPM-100 achieved MSE 0.0136476. Both samplers stayed intrinsically in native action bounds (absmax 0.999995) without evaluator-side clipping. This validates offline numerical and imitation correctness; simulator performance remains untested.",
+      "evidence_refs": [
+        "research/experiments/20260821_production_x0_offline_gate/metadata.json",
+        ".runpod/runs/runpod-20260821T053611Z-24ada889/artifacts/outputs/production_x0_offline_gate.json"
+      ],
+      "recorded_at": "2026-08-21T05:40:15Z"
     }
   ],
   "candidate_next_experiments": [
@@ -402,6 +444,15 @@
       "summary": "Run dataset construction and DataLoader worker stress tests for num_workers 0, 1, 2, and 4 across repeated epochs.",
       "reason": "Dataset failures can invalidate all training and evaluation claims.",
       "blocked_on": []
+    },
+    {
+      "id": "r9-full-causal-bounded-x0-single-seed",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "summary": "Run one fixed-seed full two-stage causal bounded-direct-x0 protocol and then evaluate 20 Lift episodes with DDIM-10 RHC.",
+      "reason": "Offline numerical stability and held-out causal imitation now pass; task performance remains unvalidated.",
+      "blocked_on": [
+        "explicit user approval for full training and simulator evaluation"
+      ]
     }
   ]
 }

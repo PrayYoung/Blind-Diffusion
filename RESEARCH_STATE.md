@@ -1,6 +1,50 @@
 # Blind-Diffusion Research State
 
-Last updated: Saturday, August 15, 2026 UTC
+Last updated: Thursday, August 21, 2026 UTC
+
+## Frozen next experiment: Antigravity two-stage smoke
+
+- Legacy 10k/100k world-model-only performance jobs are terminal; no job is active.
+- The completed run was only `scripts/run_antigravity_two_stage_smoke.sh`, not a performance experiment.
+- Frozen success criteria: native actions are unnormalized in both training datasets and WM checkpoint stats; WM and diffusion checkpoints are produced; diffusion RHC loads both and executes the first action from a DDIM-generated sequence.
+- Smoke budget: 20 WM updates, 3 diffusion updates, one five-step episode. It cannot support any task-quality claim.
+- RunPod submission `runpod-20260820T002144Z-aa8581a1` completed successfully with exit code 0, synchronized outputs, and runner-managed Pod termination. It produced both checkpoints and completed DDIM/RHC evaluation. The 0/1 success rate is non-diagnostic by the frozen smoke protocol.
+
+## Antigravity-faithful single-seed result
+
+- RunPod `runpod-20260820T003153Z-f47465bd` completed successfully: exit code 0, synced outputs, and runner-managed Pod termination.
+- Seed 0 followed the frozen 20k WM / 15-epoch frozen-WM diffusion / DDIM-10 RHC protocol with native actions.
+- WM loss declined from `2.6619` at step 0 to `1.0034` at step 19,900; best validation loss was `1.0243`.
+- Diffusion mean epoch loss declined from `0.9946` to `0.6249`; the selected best checkpoint is epoch 14.
+- All 20 Lift episodes had zero return and zero successes (average length 500). Classify the result as `STILL_NO_TASK_LEARNING`, not an execution failure and not a faithful reproduction of any Antigravity task-learning claim.
+- Runtime was 52m17s end-to-end at the configured `$0.22/hr` rate (approximately `$0.19` before any provider billing rounding). No further seeds were launched.
+
+## Offline learning diagnosis
+
+- No new training, seed, or environment rollout was launched. On the saved held-out sequence split, normalized observation MSE was `0.00740`; the WM is not supported as the primary failure explanation.
+- Raw KL averaged `0.5337`, and `98.6%` of positions were below the `1.0` free-bits threshold. Clamping therefore produced a KL term of `1.0033` and a recomputed total loss of `1.0203`; the apparent loss floor is mathematical, not unreconstructed observations.
+- The trained diffusion policy failed offline under DDIM-10: generated native-action chunks reached absolute magnitude `4596.65` while demonstrations are bounded by `1.0`; held-out action MSE was `2.013e6` and mean correlation `0.0234`. This supports diffusion/sampling failure as the proximate cause of `0/20`.
+- The dataset contains 200/200 reward-positive Lift demonstrations, 7-D OSC-pose actions, and a binary `{-1,+1}` gripper. The remaining conceptual implementation mismatch is temporal: WM training observes `(obs_t, action_t)`, while the pre-action policy/evaluator state observes `(obs_t, action_{t-1})`.
+
+## Causal convention and sampler gate
+
+- The causal convention is now explicit: `state[t] = posterior(obs[t], action[t-1])`; the policy chooses `action[t]` from that state, and the WM's imagined transition with `action[t]` produces `state[t+1]`. Old full-run checkpoints are incompatible with this repaired convention and require retraining.
+- The old DDPM used the forward beta as sampling variance rather than the posterior variance. Both DDPM and DDIM lacked `x0` clipping, allowing invalid native actions to explode. Corrected DDIM-10 / DDPM samples from the old checkpoint are bounded but still weak: MSE `0.552` / `0.682`.
+- A cheap, demo-disjoint offline-only gate (300 WM + 300 diffusion updates; 160 train / 40 held-out demos) failed: actions stayed bounded and MSE improved marginally to `0.548`, but mean correlation was only `0.026` against a required `0.10`. No simulator rollout was launched.
+
+## UNet fresh-noise score gate
+
+- Offline-only Vast run `vast-20260820T025127Z-95263-415ea0` completed successfully and its RTX 4090 instance was runner-terminated. It used one fixed native-range `7x8` target and `230-D` condition, 5,000 fresh-noise/timestep updates, and 4,000 held-out noise/timestep pairs; it loaded no dataset or environment.
+- Production `UNet1D` and the supplied Antigravity UNet are byte-for-byte equivalent in this gate: both have 648,583 parameters and exactly the same outputs/metrics under the same seed. Fresh epsilon MSE was `0.02909`, but reconstructed-x0 MSE was `2186.47` because residual score error at high-noise timesteps is amplified by cosine `alpha_bar[99] = 2.43e-7`.
+- A trainable timestep-affine score baseline (11,200 parameters; the exact score family for one fixed x0) reached fresh x0 MSE `3.48e-4`. This validates the synthetic objective and identifies the shared UNet terminal-noise score accuracy as the active blocker. It does not isolate the absence of encoder-decoder skips as the causal architectural reason.
+
+## Offline direct-x0 gate: PASS
+
+- The same UNet and full cosine schedule pass once the denoiser predicts x0 directly: one-target fresh x0 MSE is `1.57e-5` (velocity also passes at `0.00748`), versus epsilon's `2186.47`.
+- A real-demo DDIM-100 overfit also passes: MSE `1.38e-6`, native action absmax `1.00050`, no final clipping.
+- On a demonstration-disjoint causal offline gate (300 WM and 1,000 diffusion updates), bounded direct-x0 DDIM-10 reaches MSE `0.01840`, mean correlation `0.552`, and absmax `0.999995`. Corrected DDPM-100 is also stable: MSE `0.01364`, absmax `0.999995`.
+- The bounded direct-x0 path is now implemented in production and independently revalidated there. RunPod `runpod-20260821T053611Z-24ada889` completed the frozen held-out gate (300 causal WM updates, frozen WM, 1,000 diffusion updates, no simulator): DDIM-10 MSE `0.0183888`, correlation `0.552311`, absmax `0.999995`; DDPM-100 MSE `0.0136476`, absmax `0.999995`. All preregistered thresholds passed without evaluator-side clipping.
+- Classification: **offline correctness validated; simulator performance pending.** Direct bounded-x0 is intentionally a recovery-protocol change from Antigravity's historical epsilon objective. No full run has been launched.
 
 ## Current repository state
 
@@ -9,6 +53,15 @@ Last updated: Saturday, August 15, 2026 UTC
 - Branch at freeze time: `master`
 - Active research branch: `codex/blind-diffusion-research-recovery`
 - Working tree at freeze time: clean
+
+## Active remote execution
+
+- Latest RunPod runner ID: `runpod-20260818T070931Z-fbdcbfd3`
+- Pod `w4jcgzkgu5sl8l` was automatically terminated after a `$0.22/hr` run.
+- Passed: frozen dataset download, 9 regression tests, and 20-step world-model training; its checkpoint and metrics synchronized under `.runpod/runs/runpod-20260818T070931Z-fbdcbfd3/artifacts/`.
+- Remaining engineering blocker: `robosuite 1.4.1` uses `MjData.qM`, which is incompatible with MuJoCo `3.x`. The RunPod Python `3.10` environment can use the compatible MuJoCo `2.3.7` wheel for the next unchanged smoke retry.
+- Validated RunPod smoke: `runpod-20260818T072118Z-8a290821` completed at `$0.22/hr` on CUDA-enabled RTX 3090; its Pod was terminated. The frozen dataset download, all 9 regressions, 20-step training, checkpoint production, and two MPC episodes all passed. Result artifact: `.runpod/runs/runpod-20260818T072118Z-8a290821/artifacts/outputs/repaired_reference_smoke/result.json`.
+- Critic note: the smoke's `0/2` success and zero return are expectedly underpowered after only 20 optimizer steps. They establish executability, not a control-quality or Antigravity-performance claim.
 
 ## Current codebase map
 
@@ -98,21 +151,14 @@ Last updated: Saturday, August 15, 2026 UTC
 - `r1-repaired-branch-reference-run`
 - Goal: establish the first executable repaired-branch reference run after classifying the frozen baseline as non-runnable
 - Artifact target: `research/experiments/20260814_r1_repaired_reference_smoke`
-- Current remote repair:
-  - last run: `vast-20260815T002237Z-13447-ea2fb7`
-  - instance `47749465`
-  - classification: engineering failure after real workload start
-  - reconstructed environment reached:
-    - Python `3.10.20`
-    - `torch 2.4.0+cu124` with CUDA available
-    - `mujoco 3.11.0`
-    - `robomimic 0.3.0`
-    - `robosuite 1.4.1`
-    - successful `low_dim_v141.hdf5` download
-  - host `332635`, `Indiana, US`, `RTX 4090`, `$0.356/hr`
-  - repository snapshot under test: `c3ede09`
-  - first truthful remaining failure: `ModuleNotFoundError: No module named 'blind_diffusion.env'`
-  - most recent repair in progress: add `src/blind_diffusion/env/__init__.py`
+- Most recent remote run:
+  - run: `vast-20260818T050625Z-30412-e0253b`
+  - terminal classification: engineering `WORKLOAD_FAILED`; instance `47998271` was destroyed
+  - selected RTX 4090 host `121206`, South Korea, `$0.342/hr`
+  - repository snapshot under test: `6732be7` (only adds `src/blind_diffusion/env/__init__.py`)
+  - first failure: the local runner excludes any directory named `env` from its archive, omitting the tracked `src/blind_diffusion/env/` package and causing `ModuleNotFoundError`
+  - secondary host-selection defect: the host supports CUDA `12.2` only, so the frozen PyTorch CUDA `12.4` runtime reports `cuda_available: false`
+  - protocol unchanged: Python `3.10`, `robomimic 0.3.0`, `robosuite 1.4.1`, native MuJoCo `3.x`, and frozen `low_dim_v141.hdf5`
 
 ## Completed experiments
 
@@ -202,6 +248,6 @@ Last updated: Saturday, August 15, 2026 UTC
 
 ## Next action
 
-1. Commit the package-marker repair and resubmit the identical Vast workload with a new run identity.
+1. Run the identical frozen smoke through the repo-local RunPod profile: Community RTX 3090, CUDA `>=12.4`, and runner-managed cleanup.
 2. Keep the environment target, dataset family, task, and repaired-controller logic frozen.
-3. If the next retry clears the regression tests and reaches training plus low-dimensional rollout, freeze that as the working reproduction environment.
+3. If it clears regression tests and reaches training plus low-dimensional rollout, freeze that as the working reproduction environment.

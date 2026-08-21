@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-14T12:00:00Z",
+  "updated_at": "2026-08-21T05:40:15Z",
   "experiments": [
     {
       "id": "20260814_local_diagnostics",
@@ -25,9 +25,72 @@
     {
       "id": "20260814_r1_repaired_reference_smoke",
       "kind": "remote_repaired_branch_reference",
-      "status": "planned",
+      "status": "completed_still_no_task_learning",
       "question_id": "blind-diffusion-recovery-2026-08-14",
       "artifact_dir": "research/experiments/20260814_r1_repaired_reference_smoke"
+    },
+    {
+      "id": "20260820_antigravity_two_stage_smoke",
+      "kind": "remote_integration_smoke",
+      "status": "passed",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_antigravity_two_stage_smoke"
+    },
+    {
+      "id": "20260820_antigravity_faithful_single_seed",
+      "kind": "single_seed_reproduction",
+      "status": "planned",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_antigravity_faithful_single_seed"
+    },
+    {
+      "id": "20260820_offline_learning_diagnosis",
+      "kind": "offline_checkpoint_diagnosis",
+      "status": "completed",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_offline_learning_diagnosis"
+    },
+    {
+      "id": "20260820_causal_sampler_offline_gate",
+      "kind": "offline_causal_sampler_diagnosis",
+      "status": "gate_failed_no_simulator_run",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_causal_sampler_offline_gate"
+    },
+    {
+      "id": "20260820_unet_score_gate",
+      "kind": "offline_synthetic_score_gate",
+      "status": "completed_unet_terminal_noise_failure",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_unet_score_gate"
+    },
+    {
+      "id": "20260820_schedule_score_gate",
+      "kind": "offline_synthetic_schedule_diagnosis",
+      "status": "completed_terminal_snr_amplification",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_schedule_score_gate"
+    },
+    {
+      "id": "20260820_parameterization_score_gate",
+      "kind": "offline_synthetic_parameterization_diagnosis",
+      "status": "completed_x0_and_v_pass",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_parameterization_score_gate"
+    },
+    {
+      "id": "20260820_bounded_x0_sampler_gate",
+      "kind": "offline_causal_heldout_imitation_gate",
+      "status": "completed_gate_pass",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260820_bounded_x0_sampler_gate"
+    },
+    {
+      "id": "20260821_production_x0_offline_gate",
+      "kind": "offline_production_code_validation",
+      "status": "completed_gate_pass",
+      "question_id": "blind-diffusion-recovery-2026-08-14",
+      "artifact_dir": "research/experiments/20260821_production_x0_offline_gate"
     }
   ]
 }
