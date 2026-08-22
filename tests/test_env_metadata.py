@@ -22,6 +22,7 @@ class EnvMetadataTests(unittest.TestCase):
                 "use_object_obs": True,
                 "use_camera_obs": False,
                 "reward_shaping": False,
+                "controller_configs": {"type": "OSC_POSE"},
             },
         }
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -51,6 +52,7 @@ class EnvMetadataTests(unittest.TestCase):
                 "use_object_obs": True,
                 "use_camera_obs": False,
                 "reward_shaping": False,
+                "controller_configs": {"type": "OSC_POSE"},
             },
         }
         fake_create_env = mock.Mock(return_value="fake-env")
@@ -80,7 +82,7 @@ class EnvMetadataTests(unittest.TestCase):
         call_args = fake_create_env.call_args
         env_meta = call_args.args[0]
         self.assertEqual(env_meta["env_name"], "Lift")
-        self.assertIsNone(env_meta["env_kwargs"]["controller_configs"])
+        self.assertEqual(env_meta["env_kwargs"]["controller_configs"], {"type": "OSC_POSE"})
         self.assertEqual(env_meta["env_kwargs"]["camera_names"], ["agentview"])
         self.assertEqual(env_meta["env_kwargs"]["camera_heights"], 96)
         self.assertEqual(env_meta["env_kwargs"]["camera_widths"], 96)

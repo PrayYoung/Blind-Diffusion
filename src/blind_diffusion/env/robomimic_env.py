@@ -31,7 +31,6 @@ def make_env(hdf5_path: str, image_keys=None, image_size=84):
 
     env_meta = _load_env_meta(hdf5_path)
     env_meta.setdefault("env_kwargs", {})
-    env_meta["env_kwargs"]["controller_configs"] = None
 
     use_image = False
     if image_keys:
