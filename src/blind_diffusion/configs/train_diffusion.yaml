@@ -12,11 +12,14 @@ seq_len: 50
 burn_in: 5
 batch_size: 64
 num_workers: 4
+normalize_obs: true
+normalize_action: false
 
 # optimization
 lr: 1.0e-4
 weight_decay: 1.0e-6
-epochs: 10
+epochs: 15
+max_train_steps: null
 grad_clip: 100.0
 log_every: 100
 

@@ -35,6 +35,11 @@ def _denormalize(x: torch.Tensor, mean, std):
     return x * std_t + mean_t
 
 
+def select_rhc_action(sequence: torch.Tensor) -> torch.Tensor:
+    """Execute exactly the first action of a newly generated chunk."""
+    return sequence[:, :, 0]
+
+
 @hydra.main(version_base=None, config_path="../configs", config_name="eval_diffusion")
 def main(cfg):
 
@@ -65,16 +70,25 @@ def main(cfg):
     norm = wm_ckpt.get("norm", {})
     obs_mean = norm.get("obs_mean")
     obs_std = norm.get("obs_std")
-    act_mean = norm.get("act_mean")
-    act_std = norm.get("act_std")
+    act_mean = norm.get("act_mean") if cfg.normalize_action else None
+    act_std = norm.get("act_std") if cfg.normalize_action else None
 
     # diffusion
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
     unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch).to(device)
     diff = GaussianDiffusion(
-        unet, timesteps=cfg.diffusion.timesteps, schedule=cfg.diffusion.schedule
+        unet,
+        timesteps=cfg.diffusion.timesteps,
+        schedule=cfg.diffusion.schedule,
+        prediction_type=cfg.diffusion.prediction_type,
     ).to(device)
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
+    ckpt_prediction_type = diff_ckpt.get("config", {}).get("diffusion", {}).get("prediction_type")
+    if ckpt_prediction_type != cfg.diffusion.prediction_type:
+        raise ValueError(
+            f"Diffusion checkpoint prediction_type={ckpt_prediction_type!r} does not match "
+            f"evaluation config {cfg.diffusion.prediction_type!r}; retrain or select a matching checkpoint"
+        )
     diff.load_state_dict(diff_ckpt["model"])
     diff.eval()
 
@@ -105,14 +119,15 @@ def main(cfg):
             belief = torch.cat([h, z], dim=-1)
             if mode == "open_loop":
                 if open_loop_plan is None or open_loop_idx >= cfg.diffusion.horizon:
-                    open_loop_plan = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
+                    open_loop_plan = diff.sample((1, act_dim, cfg.diffusion.horizon), belief, cfg.sampler, cfg.inference_steps)
                     open_loop_idx = 0
                 action = open_loop_plan[:, :, open_loop_idx]
                 open_loop_idx += 1
             else:
-                seq = diff.sample((1, act_dim, cfg.diffusion.horizon), belief)
-                action = seq[:, :, 0]
+                seq = diff.sample((1, act_dim, cfg.diffusion.horizon), belief, cfg.sampler, cfg.inference_steps)
+                action = select_rhc_action(seq)
 
+            # x0 is intrinsically bounded by tanh in GaussianDiffusion.
             action_env = _denormalize(action, act_mean, act_std)
             action_np = action_env.squeeze(0).detach().cpu().numpy()
             obs, reward, done, info = env.step(action_np)

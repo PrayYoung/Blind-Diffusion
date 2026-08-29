@@ -16,6 +16,18 @@ __pycache__/
 # Project outputs
 runs/
 checkpoints/
+outputs/
+robomimic_datasets/
+
+# Private research and remote-runner state
+.codex/
+.runpod/
+.vast/
+AGENTS.md
+RESEARCH_STATE.md
+RESEARCH_STATE.json
+research/experiments/
+kaggle/
 
 # Data
 .data/

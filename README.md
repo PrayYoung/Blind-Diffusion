@@ -1,267 +1,92 @@
-# 🕶️ Blind Diffusion (BD)
-<p align="center">
-  <img src="assets/pipeline.png" width="800">
-</p>
+# Blind-Diffusion
 
+Blind-Diffusion is a compact research implementation of belief-conditioned
+diffusion control for RoboMimic manipulation. It combines a recurrent state
+space model (RSSM), which turns observations into a causal latent belief, with
+a diffusion model that proposes short action sequences from that belief.
 
-> **World models meet diffusion control.**  
-> Tiny RSSM + MPC + Diffusion for RoboMimic manipulation.
+The project is useful as a readable reference for a difficult interface in
+robot learning: keeping world-model training, action conditioning, diffusion
+training, and receding-horizon evaluation on the same causal convention.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![PyTorch](https://img.shields.io/badge/pytorch-2.x-orange.svg)
-![RoboMimic](https://img.shields.io/badge/dataset-RoboMimic-purple.svg)
-![Status](https://img.shields.io/badge/status-research%20prototype-yellow.svg)
+## What is implemented
 
----
+- Low-dimensional and image-conditioned RSSM world models.
+- Diffusion action-sequence generation conditioned on RSSM beliefs.
+- DDIM and DDPM sampling for native RoboMimic actions.
+- Receding-horizon and open-loop evaluation entrypoints.
+- RoboMimic Lift / Can configurations and focused regression tests.
 
-## ✨ What is Blind Diffusion?
+## Corrected implementation
 
-**Blind Diffusion** explores a simple but powerful idea:
+This public version includes recovered correctness fixes for recurrent state
+propagation, HDF5 dataset lifecycle, environment metadata handling, and causal
+pre-action belief alignment. The low-dimensional diffusion path uses direct
+`x0` prediction with an intrinsic `tanh` action bound; its DDIM and DDPM
+samplers share the corresponding production equations.
 
-> Learn a **latent world model**, generate **action plans** with diffusion,  
-> and execute them using **receding-horizon control**.
+## Validation status
 
-This repo implements a minimal research-friendly pipeline for robotic manipulation:
+Focused regression tests validate the causal belief convention, native action
+handling, bounded direct-`x0` sampling, DDIM/DDPM behavior, RSSM transitions,
+dataset construction, and environment metadata.
 
-🧠 RSSM world model  
-🎯 MPC planning in latent space  
-🌫 Diffusion action sequence generation  
-👁 Image-based perception (Milestone 3)
+Offline diffusion correctness and imitation behavior have been validated for
+the corrected implementation. **Closed-loop Lift task success is not yet
+established.** This repository is a research codebase, not a claim of a
+solved end-to-end manipulation benchmark.
 
-Designed to be:
+## Setup
 
-- 🔬 research-oriented  
-- 🧩 modular & extensible  
-- ⚡ runnable on a single GPU  
-- 🤖 aligned with modern model-based robotics  
+Python 3.10+ and PyTorch are required. Install the package and the RoboMimic
+extras in a clean environment:
 
----
-
-## 🚀 Milestone Overview
-
-### 🥇 Milestone 1 — Latent World Model + MPC
-Train a small RSSM world model on RoboMimic low-dimensional observations and run receding-horizon MPC in latent space.
-
-Outputs:
-- success rate
-- collision / constraint violations
-- open-loop baseline comparison
-
----
-
-### 🥈 Milestone 2 — Diffusion Policy
-Train a diffusion model to generate action sequences conditioned on RSSM belief state.
-
-- diffusion open-loop baseline
-- diffusion + receding horizon control
-
----
-
-### 🥉 Milestone 3 — Vision-Based Control
-Extend to image observations with a CNN encoder.
-
-- image-conditioned RSSM
-- diffusion planning from vision
-- contact / collision metrics
-
----
-
-## 🐳 Docker (Recommended)
-Build image (includes system deps, MuJoCo 2.1.0, uv, robomimic):
 ```bash
-docker build -t blind-diffusion:latest .
-```
-Run container:
-```bash
-docker run --rm -it \
-  -v $PWD:/workspace \
-  -w /workspace \
-  blind-diffusion:latest
-```
-If you want to use local datasets:
-```bash
-docker run --rm -it \
-  -v $PWD:/workspace \
-  -v /path/to/robomimic_datasets:/data \
-  -e ROBO_DATA=/data \
-  -w /workspace \
-  blind-diffusion:latest
-```
-Render backend:
-- Default in Docker is `MUJOCO_GL=egl`. If you only have CPU/no GPU, use `osmesa` instead:
-```bash
-docker run --rm -it \
-  -e MUJOCO_GL=osmesa \
-  -e PYOPENGL_PLATFORM=osmesa \
-  -v $PWD:/workspace \
-  -w /workspace \
-  blind-diffusion:latest
-```
----
-
-## ⚡ Quickstart (Local)
-```bash
-uv venv
+python -m venv .venv
 source .venv/bin/activate
-uv pip install -e .
-export PYTHONPATH=./src
+pip install -e ".[robomimic]"
+export PYTHONPATH="$PWD/src"
 ```
-If you need RoboMimic env evaluation on Linux (installs this repo + robomimic):
+
+Download the RoboMimic low-dimensional dataset and point `ROBO_DATA` at its
+parent directory:
+
 ```bash
-uv pip install -e ".[robomimic]"
+python -m robomimic.scripts.download_datasets \
+  --tasks lift --dataset_types ph --hdf5_types low_dim \
+  --download_dir ./robomimic_datasets
+export ROBO_DATA="$PWD/robomimic_datasets"
 ```
-You also might need mujoco_py installed
----
 
-## 📦 RoboMimic Data Setup
-This section applies to both local and Docker runs. For Docker, mount your dataset folder and set `ROBO_DATA=/data` (see Docker section).
+## Minimal reproduction
 
-1. Install RoboMimic and dependencies.
-2. Download low-dim datasets (default: `lift/low_dim_v141.hdf5`):
-`https://robomimic.github.io/docs/datasets/overview.html`
-`https://robomimic.github.io/docs/datasets/datasets.html`
-`https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
-3. Set dataset path:
+Run the focused tests first:
+
 ```bash
-export ROBO_DATA=/path/to/robomimic/datasets
+python -m unittest discover -s tests
 ```
-Eval step limit:
+
+Then train a low-dimensional world model, train the diffusion policy, and
+evaluate it with receding-horizon control:
+
 ```bash
-uv run python scripts/eval.py task=lift eval.mode=mpc max_steps=500
+python scripts/train_wm.py task=lift
+python scripts/train_diffusion.py task=lift
+python scripts/eval_diffusion.py task=lift eval.mode=rhc
 ```
-Override task dataset path (Hydra):
-```bash
-uv run python scripts/train_wm.py task=lift task.hdf5_name=lift/low_dim_v141.hdf5
-```
-Example download:
-```bash
-mkdir -p ./robomimic_datasets
-cd ./robomimic_datasets
-curl -L -o lift_low_dim.hdf5 "<direct_dataset_link>"
-export ROBO_DATA=./robomimic_datasets
-```
-RoboMimic downloader (after installing robomimic):
-```bash
-python -m robomimic.scripts.download_datasets --task lift --dataset_type low_dim --version v141 --download_dir ./robomimic_datasets
-export ROBO_DATA=./robomimic_datasets
-```
----
 
-## ✅ Run Order (Minimal)
-1. Train world model (low-dim):
-```bash
-uv run python scripts/train_wm.py task=lift
+The default configs are in `src/blind_diffusion/configs/`. Override them with
+Hydra arguments as needed, for example `task=can` or
+`diffusion=diffusion_full`.
+
+## Repository layout
+
+```text
+src/blind_diffusion/  core models, training, evaluation, and configs
+scripts/              public training and evaluation entrypoints
+tests/                focused regression tests
 ```
-2. Evaluate MPC:
-```bash
-uv run python scripts/eval.py task=lift eval.mode=mpc
-```
-3. Train diffusion (Milestone 2):
-```bash
-uv run python scripts/train_diffusion.py task=lift
-```
-4. Evaluate diffusion (RHC):
-```bash
-uv run python scripts/eval_diffusion.py task=lift
-```
----
 
-## 🧪 Optional Baselines
-BC (low-dim):
-```bash
-uv run python scripts/train_bc_lowdim.py task=lift
-uv run python scripts/eval.py task=lift eval.mode=bc_eval
-```
-Diffusion open-loop:
-```bash
-uv run python scripts/eval_diffusion.py task=lift eval.mode=open_loop
-```
-Image BC:
-```bash
-uv run python scripts/train_bc_image.py task=lift_image
-uv run python scripts/eval.py task=lift_image eval.mode=image_bc_eval
-```
-Note: image size is controlled by `task.image_size` (train and eval are kept consistent).
----
+## License
 
-## 👁 Milestone 3 (Images)
-1. Train image world model:
-```bash
-uv run python scripts/train_wm_image.py task=lift_image
-```
-2. Train image diffusion:
-```bash
-uv run python scripts/train_diffusion_image.py task=lift_image
-```
-3. Evaluate image diffusion (RHC):
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_rhc
-```
-Open-loop image diffusion:
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_open_loop
-```
-Sensor-block demo (image eval):
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_rhc \
-  eval.save_video=true eval.sensor_block.enable=true eval.sensor_block.mode=prior
-```
-Diffusion config preset:
-```bash
-uv run python scripts/train_diffusion.py task=lift diffusion=diffusion_full
-```
----
-
-## 📁 Project Layout
-```
-src/blind_diffusion/configs/ — experiment & model configs  
-scripts/ — CLI entry points  
-src/blind_diffusion/ — core library  
-runs/ — outputs & checkpoints  
-```
-Key modules:
-- `src/blind_diffusion/train/` — training entrypoints (WM, diffusion, baselines)
-- `src/blind_diffusion/eval/` — evaluation entrypoints (low-dim, diffusion, image)
-- `src/blind_diffusion/diffusion/` — diffusion models and schedulers
-- `src/blind_diffusion/models/` — RSSM + encoders + heads
----
-
-## 🧩 Design Notes
-
-- Milestone 1 uses low-dim observations only  
-- Collision / constraint violation defined in:
-`
-src/blind_diffusion/planner/cost.py
-`
----
-
-## 🎯 Why this project?
-
-Modern robot learning is converging toward:
-
-✔ world models  
-✔ generative planning  
-✔ receding horizon control  
-
-This repo is a minimal playground for exploring that convergence.
-
----
-
-## 🛣 Roadmap
-
-- cross-attention planning  
-- latent diffusion planning  
-- multi-task RoboMimic  
-- real robot transfer  
-- uncertainty-aware planning  
-
----
-
-## 📜 License
-
-MIT License — see LICENSE.
-
----
-
-⭐ If you find this useful, give it a star and experiment freely.
+MIT. See [LICENSE](LICENSE).
