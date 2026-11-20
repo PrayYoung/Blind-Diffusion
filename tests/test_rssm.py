@@ -47,6 +47,14 @@ class RSSMTests(unittest.TestCase):
         self.assertFalse(torch.allclose(carried["h"], reset["h"]))
         self.assertFalse(torch.allclose(carried["z"], reset["z"]))
 
+    def test_deterministic_steps_return_distribution_means(self):
+        rssm = RSSM(action_dim=2, obs_dim=5, deter_dim=7, stoch_dim=3, hidden_dim=11)
+        state = {"h": torch.zeros(1, 7), "z": torch.zeros(1, 3)}
+        observed = rssm.observe_step(torch.randn(1, 5), torch.randn(1, 2), state, deterministic=True)
+        imagined = rssm.imagine_step(torch.randn(1, 2), state, deterministic=True)
+        self.assertTrue(torch.equal(observed["z"], observed["post_mean"]))
+        self.assertTrue(torch.equal(imagined["z"], imagined["prior_mean"]))
+
 
 if __name__ == "__main__":
     unittest.main()

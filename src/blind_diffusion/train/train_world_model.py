@@ -3,7 +3,7 @@ from typing import Dict
 import json
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 from omegaconf import OmegaConf
 import hydra
@@ -105,10 +105,15 @@ def build_loaders(cfg):
         burn_in=cfg.burn_in,
         normalize_obs=cfg.normalize_obs,
         normalize_action=cfg.normalize_action,
+        pad_end=cfg.pad_end,
     )
-    val_size = int(len(dataset) * cfg.val_fraction)
-    train_size = len(dataset) - val_size
-    train_ds, val_ds = random_split(dataset, [train_size, val_size])
+    # Splitting random windows leaks adjacent states from one demonstration
+    # into both partitions. Hold out complete demonstrations instead.
+    val_demo_count = max(1, int(round(len(dataset.demo_names) * cfg.val_fraction)))
+    val_demos = set(dataset.demo_names[-val_demo_count:])
+    train_indices = [i for i, (demo, _) in enumerate(dataset.index) if demo not in val_demos]
+    val_indices = [i for i, (demo, _) in enumerate(dataset.index) if demo in val_demos]
+    train_ds, val_ds = Subset(dataset, train_indices), Subset(dataset, val_indices)
 
     pin = (get_device().type == "cuda")
     train_loader = DataLoader(

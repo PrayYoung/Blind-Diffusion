@@ -18,6 +18,7 @@ class RoboMimicSequenceDataset(Dataset):
         normalize_obs: bool = True,
         normalize_action: bool = True,
         max_demos: int = None,
+        pad_end: int = 0,
     ):
         assert os.path.exists(hdf5_path), f"Missing dataset: {hdf5_path}"
         self.hdf5_path = hdf5_path
@@ -26,6 +27,7 @@ class RoboMimicSequenceDataset(Dataset):
         self.burn_in = burn_in
         self.normalize_obs = normalize_obs
         self.normalize_action = normalize_action
+        self.pad_end = pad_end
 
         self._h5 = None
         with h5py.File(self.hdf5_path, "r") as h5:
@@ -34,6 +36,7 @@ class RoboMimicSequenceDataset(Dataset):
                 demo_names = demo_names[:max_demos]
             self.demo_names = demo_names
             self.demo_lens = [h5[f"data/{d}/actions"].shape[0] for d in demo_names]
+            self.demo_len_by_name = dict(zip(self.demo_names, self.demo_lens))
             self.index = self._build_index()
             obs_all, act_all = self._gather_stats_samples(h5)
         self.obs_mean, self.obs_std = compute_mean_std(obs_all) if normalize_obs else (None, None)
@@ -43,7 +46,7 @@ class RoboMimicSequenceDataset(Dataset):
         idx = []
         need = self.seq_len
         for d, length in zip(self.demo_names, self.demo_lens):
-            max_start = length - need
+            max_start = length - need + self.pad_end
             for s in range(max_start + 1):
                 idx.append((d, s))
         return idx
@@ -91,10 +94,17 @@ class RoboMimicSequenceDataset(Dataset):
         h5 = self._ensure_h5()
         demo, start = self.index[idx]
         end = start + self.seq_len
-        obs = self._load_obs(h5, demo)[start:end]
-        actions = h5[f"data/{demo}/actions"][start:end]
-        rewards = h5[f"data/{demo}/rewards"][start:end]
-        dones = h5[f"data/{demo}/dones"][start:end]
+        demo_len = self.demo_len_by_name[demo]
+        obs = self._load_obs(h5, demo)[start:min(end, demo_len)]
+        actions = h5[f"data/{demo}/actions"][start:min(end, demo_len)]
+        rewards = h5[f"data/{demo}/rewards"][start:min(end, demo_len)]
+        dones = h5[f"data/{demo}/dones"][start:min(end, demo_len)]
+        if len(obs) < self.seq_len:
+            pad = self.seq_len - len(obs)
+            obs = np.concatenate([obs, np.repeat(obs[-1:], pad, axis=0)], axis=0)
+            actions = np.concatenate([actions, np.zeros((pad, actions.shape[-1]), dtype=actions.dtype)], axis=0)
+            rewards = np.concatenate([rewards, np.zeros(pad, dtype=rewards.dtype)], axis=0)
+            dones = np.concatenate([dones, np.ones(pad, dtype=dones.dtype)], axis=0)
 
         if self.normalize_obs:
             obs = normalize(obs, self.obs_mean, self.obs_std)

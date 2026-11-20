@@ -8,8 +8,9 @@ exp_name: diff_lift
 seed: 0
 
 # dataset
-seq_len: 50
-burn_in: 5
+seq_len: 32
+burn_in: 4
+pad_end: 8
 batch_size: 64
 num_workers: 4
 normalize_obs: true

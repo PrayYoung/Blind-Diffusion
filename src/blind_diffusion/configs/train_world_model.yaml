@@ -7,11 +7,12 @@ exp_name: wm_lift
 seed: 0
 
 # dataset
-seq_len: 50
-burn_in: 5
+seq_len: 32
+burn_in: 4
 batch_size: 64
 num_workers: 4
 val_fraction: 0.02
+pad_end: 8
 normalize_obs: true
 normalize_action: false
 

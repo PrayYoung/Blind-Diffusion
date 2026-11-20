@@ -95,6 +95,20 @@ class DatasetTests(unittest.TestCase):
                 self.assertEqual(first_values[0], first_values[1])
                 self.assertEqual(len(first_values[0]), len(dataset))
 
+    def test_lowdim_dataset_pads_end_windows(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "lowdim.hdf5"
+            _make_lowdim_hdf5(path, demos=1, steps=5)
+            dataset = RoboMimicSequenceDataset(
+                str(path), ["state"], seq_len=4, pad_end=3,
+                normalize_obs=False, normalize_action=False,
+            )
+            self.assertEqual(len(dataset), 5)
+            sample = dataset[-1]
+            self.assertTrue(torch.equal(sample["obs"][-1], sample["obs"][-2]))
+            self.assertTrue(torch.equal(sample["actions"][-1], torch.zeros(2)))
+            self.assertEqual(float(sample["dones"][-1]), 1.0)
+
     def test_image_dataset_initializes_and_reads(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "image.hdf5"

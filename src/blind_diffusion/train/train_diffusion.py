@@ -31,6 +31,7 @@ def main(cfg):
         burn_in=cfg.burn_in,
         normalize_obs=cfg.normalize_obs,
         normalize_action=cfg.normalize_action,
+        pad_end=cfg.pad_end,
     )
     pin = (get_device().type == "cuda")
     loader = DataLoader(

@@ -114,7 +114,7 @@ def main(cfg):
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
 
-            state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z})
+            state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z}, deterministic=True)
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
             if mode == "open_loop":
@@ -131,11 +131,12 @@ def main(cfg):
             action_env = _denormalize(action, act_mean, act_std)
             action_np = action_env.squeeze(0).detach().cpu().numpy()
             obs, reward, done, info = env.step(action_np)
-            prev_action = action
+            prev_action = action.clamp(-1.0, 1.0)
 
             ep_return += float(reward)
             steps += 1
-            if info.get("success", False):
+            env_success = env.is_success()
+            if bool(env_success.get("task", False)) or info.get("success", False) or reward >= 1.0:
                 success = 1.0
             if info.get("collision", False) or info.get("violation", False):
                 collision = 1.0
