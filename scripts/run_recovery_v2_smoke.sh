@@ -9,6 +9,7 @@ fi
 export PYTHONPATH="$ROOT/src:$ROOT:${PYTHONPATH:-}"
 export ROBO_DATA="${ROBO_DATA:-$ROOT/robomimic_datasets}"
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
+export MPLBACKEND=Agg
 mkdir -p "$ROBO_DATA/lift"
 python scripts/cuda_preflight.py
 if [[ ! -f "$ROBO_DATA/lift/low_dim_v141.hdf5" ]]; then
