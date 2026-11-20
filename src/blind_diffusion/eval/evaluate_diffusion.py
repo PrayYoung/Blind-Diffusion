@@ -12,6 +12,7 @@ from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model import WorldModel
 from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
+from blind_diffusion.eval.protocol import is_blackout, task_success
 
 import robomimic.utils.obs_utils as ObsUtils
 
@@ -40,6 +41,7 @@ def select_rhc_action(sequence: torch.Tensor) -> torch.Tensor:
     return sequence[:, :, 0]
 
 
+@torch.no_grad()
 @hydra.main(version_base=None, config_path="../configs", config_name="eval_diffusion")
 def main(cfg):
 
@@ -74,22 +76,27 @@ def main(cfg):
     act_std = norm.get("act_std") if cfg.normalize_action else None
 
     # diffusion
+    diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
+    architecture = diff_ckpt.get("config", {}).get("diffusion", {}).get("architecture", "legacy")
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
-    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch).to(device)
+    checkpoint_dc = diff_ckpt["config"]["diffusion"]
+    for key in ("horizon", "timesteps", "schedule"):
+        if checkpoint_dc[key] != cfg.diffusion[key]:
+            raise ValueError(f"Evaluation {key} does not match the policy checkpoint")
+    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=checkpoint_dc["base_ch"], architecture=architecture).to(device)
     diff = GaussianDiffusion(
         unet,
         timesteps=cfg.diffusion.timesteps,
         schedule=cfg.diffusion.schedule,
         prediction_type=cfg.diffusion.prediction_type,
     ).to(device)
-    diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
     ckpt_prediction_type = diff_ckpt.get("config", {}).get("diffusion", {}).get("prediction_type")
     if ckpt_prediction_type != cfg.diffusion.prediction_type:
         raise ValueError(
             f"Diffusion checkpoint prediction_type={ckpt_prediction_type!r} does not match "
             f"evaluation config {cfg.diffusion.prediction_type!r}; retrain or select a matching checkpoint"
         )
-    diff.load_state_dict(diff_ckpt["model"])
+    diff.load_state_dict(diff_ckpt.get("ema_model", diff_ckpt["model"]))
     diff.eval()
 
     max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
@@ -114,7 +121,10 @@ def main(cfg):
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
 
-            state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z}, deterministic=True)
+            if is_blackout(steps, cfg.warmup_steps, cfg.blackout_period, cfg.blackout_duration):
+                state = wm.rssm.imagine_step(prev_action, {"h": h, "z": z}, deterministic=True)
+            else:
+                state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z}, deterministic=True)
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
             if mode == "open_loop":
@@ -128,15 +138,14 @@ def main(cfg):
                 action = select_rhc_action(seq)
 
             # x0 is intrinsically bounded by tanh in GaussianDiffusion.
-            action_env = _denormalize(action, act_mean, act_std)
+            action_env = _denormalize(action, act_mean, act_std).clamp(-1.0, 1.0)
             action_np = action_env.squeeze(0).detach().cpu().numpy()
             obs, reward, done, info = env.step(action_np)
-            prev_action = action.clamp(-1.0, 1.0)
+            prev_action = _normalize(action_env, act_mean, act_std)
 
             ep_return += float(reward)
             steps += 1
-            env_success = env.is_success()
-            if bool(env_success.get("task", False)) or info.get("success", False) or reward >= 1.0:
+            if task_success(env, info):
                 success = 1.0
             if info.get("collision", False) or info.get("violation", False):
                 collision = 1.0

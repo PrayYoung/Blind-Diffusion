@@ -11,7 +11,7 @@ seq_len: 32
 burn_in: 4
 batch_size: 64
 num_workers: 4
-val_fraction: 0.02
+val_fraction: 0.05
 pad_end: 8
 normalize_obs: true
 normalize_action: false
@@ -25,6 +25,10 @@ val_every: 1000
 grad_clip: 100.0
 kl_free_bits: 1.0
 kl_scale: 1.0
+obs_weight: 1.0
+imag_horizon: 0
+imag_weight: 0.0
+overshoot_weight: 0.0
 
 # Disabled for the frozen expert-only protocol. A versioned recovery run may
 # perturb belief inputs while reconstructing clean expert targets.

@@ -18,10 +18,13 @@ eval:
 normalize_action: false
 sampler: ddim
 inference_steps: 10
+warmup_steps: 5
+blackout_period: 20
+blackout_duration: 0
 
 # checkpoints
 wm_checkpoint: runs/wm_lift/checkpoints/best.pt
-diff_checkpoint: runs/diff_lift/checkpoints/diffusion_epoch_9.pt
+diff_checkpoint: runs/diff_lift/checkpoints/best.pt
 
 # paths
 run_dir: runs

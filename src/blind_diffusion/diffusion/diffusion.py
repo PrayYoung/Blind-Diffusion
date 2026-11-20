@@ -90,15 +90,20 @@ class GaussianDiffusion(nn.Module):
         variance = self.posterior_variance[t].view(-1, 1, 1)
         return mean + torch.sqrt(variance.clamp_min(0.0)) * noise
 
-    def loss(self, x0: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
+    def loss(self, x0: torch.Tensor, cond: torch.Tensor, mask=None) -> torch.Tensor:
+        if mask is not None:
+            # Invalid labels must not enter the denoiser input either.
+            x0 = torch.where(mask.bool(), x0, torch.zeros_like(x0))
         B = x0.shape[0]
         t = torch.randint(0, self.timesteps, (B,), device=x0.device)
         noise = torch.randn_like(x0)
         xt = self.q_sample(x0, t, noise)
-        if self.prediction_type == "x0":
-            return F.mse_loss(torch.tanh(self.model(xt, t, cond)), x0)
         pred = self.model(xt, t, cond)
-        return F.mse_loss(pred, noise)
+        error = (torch.tanh(pred) - x0).square() if self.prediction_type == "x0" else (pred - noise).square()
+        if mask is None:
+            return error.mean()
+        weights = mask.to(error.dtype).expand_as(error)
+        return (error * weights).sum() / weights.sum().clamp_min(1)
 
     @torch.no_grad()
     def sample_ddpm(self, shape, cond: torch.Tensor, return_trajectory: bool = False):

@@ -15,6 +15,7 @@ from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.train.train_world_model import WorldModel
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.utils.seed import set_seed
+from blind_diffusion.eval.protocol import is_blackout, task_success
 
 import robomimic.utils.obs_utils as ObsUtils
 
@@ -51,6 +52,7 @@ def make_env(hdf5_path):
     return create_env_from_metadata(json.loads(raw), use_image_obs=False, render_offscreen=False)
 
 
+@torch.no_grad()
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
@@ -59,6 +61,9 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=2)
     parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--warmup-steps", type=int, default=5)
+    parser.add_argument("--blackout-period", type=int, default=20)
+    parser.add_argument("--blackout-duration", type=int, default=0)
     parser.add_argument(
         "--ddim-noise-mode",
         choices=("fresh", "fixed"),
@@ -94,9 +99,10 @@ def main() -> None:
     if diff_cfg["prediction_type"] != "x0":
         raise RuntimeError("Trace requires the bounded direct-x0 checkpoint")
     cond_dim = model_cfg.rssm.deter_dim + model_cfg.rssm.stoch_dim
-    denoiser = UNet1D(action_dim, diff_cfg["horizon"], cond_dim, base_ch=diff_cfg["base_ch"]).to(device)
+    denoiser = UNet1D(action_dim, diff_cfg["horizon"], cond_dim, base_ch=diff_cfg["base_ch"],
+                      architecture=diff_cfg.get("architecture", "legacy")).to(device)
     diffusion = GaussianDiffusion(denoiser, diff_cfg["timesteps"], diff_cfg["schedule"], prediction_type="x0").to(device)
-    diffusion.load_state_dict(diff_ckpt["model"])
+    diffusion.load_state_dict(diff_ckpt.get("ema_model", diff_ckpt["model"]))
     diffusion.eval()
 
     episodes = []
@@ -115,7 +121,9 @@ def main() -> None:
         for step in range(args.max_steps):
             obs_vec = _obs_to_vec(obs, obs_keys).unsqueeze(0).to(device)
             embedded = wm.encoder(_normalize(obs_vec, norm.get("obs_mean"), norm.get("obs_std")))
-            state = wm.rssm.observe_step(embedded, prev_action, {"h": h, "z": z})
+            blind = is_blackout(step, args.warmup_steps, args.blackout_period, args.blackout_duration)
+            state = (wm.rssm.imagine_step(prev_action, {"h": h, "z": z}, deterministic=True)
+                     if blind else wm.rssm.observe_step(embedded, prev_action, {"h": h, "z": z}, deterministic=True))
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
             sequence = diffusion.sample(
@@ -126,6 +134,7 @@ def main() -> None:
                 initial_noise=fixed_noise,
             )
             action = select_rhc_action(sequence)
+            action = action.clamp(-1.0, 1.0)
             action_np = action.squeeze(0).detach().cpu().numpy()
 
             eef = np.asarray(obs["robot0_eef_pos"], dtype=float)
@@ -135,6 +144,7 @@ def main() -> None:
             object_pos = object_obs[:3]
             trajectory.append({
                 "step": step,
+                "blackout": blind,
                 "observation": _raw_obs(obs, obs_keys),
                 "action": action_np.tolist(),
                 "eef_pos": eef.tolist(),
@@ -151,13 +161,13 @@ def main() -> None:
                 "next_observation": _raw_obs(obs, obs_keys),
                 "reward": float(reward),
                 "done": bool(done),
-                "success_after_step": bool(info.get("success", False)),
+                "success_after_step": task_success(env, info),
                 "collision_after_step": bool(info.get("collision", False) or info.get("violation", False)),
                 "info": {k: v for k, v in info.items() if isinstance(v, (bool, int, float, str))},
             })
             prev_action = action
             ep_return += float(reward)
-            success = success or bool(info.get("success", False))
+            success = success or task_success(env, info)
             collision = collision or bool(info.get("collision", False) or info.get("violation", False))
             if done:
                 break

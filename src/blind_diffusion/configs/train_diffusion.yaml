@@ -15,6 +15,12 @@ batch_size: 64
 num_workers: 4
 normalize_obs: true
 normalize_action: false
+val_fraction: 0.05
+ema_decay: 0.995
+val_mc_samples: 4
+prior_aug_prob: 0.0
+warmup_steps: 5
+blackout_max_duration: 20
 
 # optimization
 lr: 1.0e-4
