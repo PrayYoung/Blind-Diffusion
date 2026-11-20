@@ -23,6 +23,11 @@ max_train_steps: null
 grad_clip: 100.0
 log_every: 100
 
+# Conditioning noise is disabled for the frozen protocol. It is intentionally
+# separate from robust-WM training and must be enabled only in a versioned run.
+robustness:
+  belief_noise_std: 0.0
+
 # world model
 wm_checkpoint: runs/wm_lift/checkpoints/best.pt
 

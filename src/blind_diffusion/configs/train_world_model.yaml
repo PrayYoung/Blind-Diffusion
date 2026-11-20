@@ -25,6 +25,12 @@ grad_clip: 100.0
 kl_free_bits: 1.0
 kl_scale: 1.0
 
+# Disabled for the frozen expert-only protocol. A versioned recovery run may
+# perturb belief inputs while reconstructing clean expert targets.
+robustness:
+  obs_noise_std: 0.0
+  previous_action_noise_std: 0.0
+
 # paths
 run_dir: runs
 

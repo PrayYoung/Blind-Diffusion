@@ -54,6 +54,27 @@ class DiffusionSamplingTests(unittest.TestCase):
         self.assertTrue(torch.allclose(first, second))
         self.assertEqual(len(model.calls), 5)
 
+    def test_ddim_accepts_fixed_terminal_noise_without_using_rng(self):
+        model = ZeroModel()
+        diffusion = GaussianDiffusion(model, timesteps=20)
+        cond = torch.zeros(1, 3)
+        noise = torch.randn(1, 2, 4)
+
+        torch.manual_seed(1)
+        first = diffusion.sample((1, 2, 4), cond, sampler="ddim", inference_steps=5, initial_noise=noise)
+        torch.manual_seed(999)
+        second = diffusion.sample((1, 2, 4), cond, sampler="ddim", inference_steps=5, initial_noise=noise)
+
+        self.assertTrue(torch.allclose(first, second))
+
+    def test_ddim_rejects_wrong_initial_noise_shape(self):
+        diffusion = GaussianDiffusion(ZeroModel(), timesteps=20)
+        with self.assertRaisesRegex(ValueError, "initial_noise shape"):
+            diffusion.sample(
+                (1, 2, 4), torch.zeros(1, 3), sampler="ddim", inference_steps=5,
+                initial_noise=torch.zeros(1, 2, 3),
+            )
+
     def test_ddpm_remains_available(self):
         model = ZeroModel()
         diffusion = GaussianDiffusion(model, timesteps=6)

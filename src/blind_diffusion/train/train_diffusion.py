@@ -76,6 +76,8 @@ def main(cfg):
 
             with torch.no_grad():
                 belief = compute_pre_action_beliefs(wm, obs, actions)
+                if cfg.robustness.belief_noise_std:
+                    belief = belief + torch.randn_like(belief) * cfg.robustness.belief_noise_std
 
             B, T, _ = actions.shape
             t0 = torch.randint(0, T - cfg.diffusion.horizon + 1, (B,), device=device)

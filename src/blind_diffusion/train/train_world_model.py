@@ -52,13 +52,27 @@ class WorldModel(torch.nn.Module):
         return post, obs_pred, reward_pred, done_logits
 
 
-def compute_loss(batch, model: WorldModel, burn_in: int, kl_free_bits: float, kl_scale: float):
+def compute_loss(batch, model: WorldModel, burn_in: int, kl_free_bits: float, kl_scale: float,
+                 obs_noise_std: float = 0.0, previous_action_noise_std: float = 0.0):
     obs = batch["obs"]
     actions = batch["actions"]
     rewards = batch["rewards"]
     dones = batch["dones"]
 
-    post, obs_pred, reward_pred, done_logits = model(obs, actions)
+    # The legacy objective is entirely expert-forced.  When enabled, corrupt
+    # only the *belief inputs* but retain clean targets: this teaches recovery
+    # rather than asking the decoder to model artificial noise.
+    obs_input = obs + torch.randn_like(obs) * obs_noise_std if obs_noise_std else obs
+    action_inputs = previous_actions(actions)
+    if previous_action_noise_std:
+        action_inputs = action_inputs + torch.randn_like(action_inputs) * previous_action_noise_std
+        action_inputs[:, 0] = 0.0
+    obs_embed = model.encoder(obs_input)
+    post = model.rssm.observe(obs_embed, action_inputs)
+    feat = torch.cat([post["h"], post["z"]], dim=-1)
+    obs_pred = model.obs_head(feat)
+    reward_pred = model.reward_head(feat)
+    done_logits = model.done_head(feat)
 
     # state[t] reconstructs obs[t]; state[t + 1] is the first state after
     # action[t], so reward/done[t] are decoded from that next state.
@@ -131,7 +145,10 @@ def main(cfg):
         model.train()
         for batch in train_loader:
             batch = {k: v.to(device) for k, v in batch.items()}
-            loss, logs = compute_loss(batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale)
+            loss, logs = compute_loss(
+                batch, model, cfg.burn_in, cfg.kl_free_bits, cfg.kl_scale,
+                cfg.robustness.obs_noise_std, cfg.robustness.previous_action_noise_std,
+            )
 
             optim.zero_grad()
             loss.backward()

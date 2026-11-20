@@ -16,6 +16,14 @@ __pycache__/
 # Project outputs
 runs/
 checkpoints/
+outputs/
+
+# Local research and remote-run state (may contain datasets, checkpoints,
+# provider logs, or machine-specific paths; keep portable code and configs
+# under version control instead).
+.codex/
+.runpod/
+research/**/source_checkpoints/
 
 # Data
 .data/

@@ -111,14 +111,35 @@ class GaussianDiffusion(nn.Module):
         return (x, trajectory) if return_trajectory else x
 
     @torch.no_grad()
-    def sample_ddim(self, shape, cond: torch.Tensor, inference_steps: int = 10, eta: float = 0.0, return_trajectory: bool = False):
-        """Deterministic DDIM (eta=0) sampling over a strided timestep schedule."""
+    def sample_ddim(
+        self,
+        shape,
+        cond: torch.Tensor,
+        inference_steps: int = 10,
+        eta: float = 0.0,
+        return_trajectory: bool = False,
+        initial_noise: torch.Tensor | None = None,
+    ):
+        """DDIM sampling over a strided timestep schedule.
+
+        ``eta=0`` makes the reverse trajectory deterministic *given its
+        terminal noise*. Supplying ``initial_noise`` therefore makes repeated
+        receding-horizon queries comparable, instead of silently drawing a
+        new policy sample at each control step.
+        """
         if not 1 <= inference_steps <= self.timesteps:
             raise ValueError(f"inference_steps must be in [1, {self.timesteps}], got {inference_steps}")
 
         if eta < 0:
             raise ValueError("eta must be non-negative")
-        x = torch.randn(shape, device=cond.device)
+        if initial_noise is None:
+            x = torch.randn(shape, device=cond.device)
+        else:
+            if tuple(initial_noise.shape) != tuple(shape):
+                raise ValueError(
+                    f"initial_noise shape {tuple(initial_noise.shape)} does not match requested shape {tuple(shape)}"
+                )
+            x = initial_noise.to(device=cond.device, dtype=cond.dtype).clone()
         trajectory = []
         schedule = torch.linspace(
             self.timesteps - 1, 0, inference_steps, device=cond.device
@@ -140,9 +161,20 @@ class GaussianDiffusion(nn.Module):
         return (x, trajectory) if return_trajectory else x
 
     @torch.no_grad()
-    def sample(self, shape, cond: torch.Tensor, sampler: str = "ddpm", inference_steps: int | None = None, eta: float = 0.0, return_trajectory: bool = False):
+    def sample(
+        self,
+        shape,
+        cond: torch.Tensor,
+        sampler: str = "ddpm",
+        inference_steps: int | None = None,
+        eta: float = 0.0,
+        return_trajectory: bool = False,
+        initial_noise: torch.Tensor | None = None,
+    ):
         if sampler == "ddpm":
+            if initial_noise is not None:
+                raise ValueError("initial_noise is only supported by DDIM sampling")
             return self.sample_ddpm(shape, cond, return_trajectory)
         if sampler == "ddim":
-            return self.sample_ddim(shape, cond, inference_steps or 10, eta, return_trajectory)
+            return self.sample_ddim(shape, cond, inference_steps or 10, eta, return_trajectory, initial_noise)
         raise ValueError(f"Unknown diffusion sampler: {sampler}")

@@ -10,8 +10,10 @@ DATA_ROOT="${ROBO_DATA:-$ROOT_DIR/robomimic_datasets}"
 DATASET_PATH="$DATA_ROOT/lift/low_dim_v141.hdf5"
 DOWNLOADED_PATH="$DATA_ROOT/lift/ph/low_dim_v141.hdf5"
 
-eval "$(conda shell.bash hook)"
-conda activate "$ENV_NAME"
+if command -v conda >/dev/null 2>&1; then
+  eval "$(conda shell.bash hook)"
+  conda activate "$ENV_NAME"
+fi
 
 export ROBO_DATA="$DATA_ROOT"
 export PYTHONPATH="$ROOT_DIR/src:$ROOT_DIR:${PYTHONPATH:-}"
