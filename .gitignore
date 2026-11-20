@@ -17,17 +17,13 @@ __pycache__/
 runs/
 checkpoints/
 outputs/
-robomimic_datasets/
 
-# Private research and remote-runner state
+# Local research and remote-run state (may contain datasets, checkpoints,
+# provider logs, or machine-specific paths; keep portable code and configs
+# under version control instead).
 .codex/
 .runpod/
-.vast/
-AGENTS.md
-RESEARCH_STATE.md
-RESEARCH_STATE.json
-research/experiments/
-kaggle/
+research/**/source_checkpoints/
 
 # Data
 .data/
@@ -35,15 +31,10 @@ kaggle/
 
 # Packaging
 *.egg-info/
+build/
 
 # Env
 .env
-
-# Local research orchestration and remote-run artifacts
-.codex/
-.runpod/
-.vast/
-research/experiments/
 
 # Legacy
 model/__pycache__/

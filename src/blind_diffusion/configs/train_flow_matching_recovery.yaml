@@ -1,0 +1,9 @@
+defaults:
+  - train_diffusion_recovery
+  - _self_
+
+exp_name: flow_lift_recovery_v2
+policy_type: flow_matching
+flow:
+  sigma_min: 1.0e-4
+  time_scale: 1000.0

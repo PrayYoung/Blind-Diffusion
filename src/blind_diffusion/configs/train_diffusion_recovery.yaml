@@ -1,0 +1,15 @@
+defaults:
+  - train_diffusion
+  - _self_
+
+exp_name: diff_lift_recovery_v2
+wm_checkpoint: runs/wm_lift_recovery_v2/checkpoints/best.pt
+batch_size: 128
+epochs: 100
+lr: 3.0e-4
+weight_decay: 1.0e-5
+grad_clip: 10.0
+prior_aug_prob: 0.5
+diffusion:
+  architecture: skip_v2
+  base_ch: 128

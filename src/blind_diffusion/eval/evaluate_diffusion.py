@@ -10,8 +10,8 @@ from blind_diffusion.utils.metrics import summarize_episode_metrics
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.diffusion.model import UNet1D
-from blind_diffusion.diffusion.diffusion import GaussianDiffusion
+from blind_diffusion.eval.protocol import is_blackout, task_success, object_observation_sham
+from blind_diffusion.diffusion.policy import build_action_policy
 
 import robomimic.utils.obs_utils as ObsUtils
 
@@ -40,6 +40,7 @@ def select_rhc_action(sequence: torch.Tensor) -> torch.Tensor:
     return sequence[:, :, 0]
 
 
+@torch.no_grad()
 @hydra.main(version_base=None, config_path="../configs", config_name="eval_diffusion")
 def main(cfg):
 
@@ -74,29 +75,33 @@ def main(cfg):
     act_std = norm.get("act_std") if cfg.normalize_action else None
 
     # diffusion
-    cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
-    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch).to(device)
-    diff = GaussianDiffusion(
-        unet,
-        timesteps=cfg.diffusion.timesteps,
-        schedule=cfg.diffusion.schedule,
-        prediction_type=cfg.diffusion.prediction_type,
-    ).to(device)
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
+    cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
+    checkpoint_dc = diff_ckpt["config"]["diffusion"]
+    checkpoint_kind = diff_ckpt["config"].get("policy_type", "diffusion")
+    if checkpoint_kind != cfg.get("policy_type", "diffusion"):
+        raise ValueError("Evaluation policy_type does not match the checkpoint")
+    for key in (("horizon", "timesteps", "schedule") if checkpoint_kind == "diffusion" else ("horizon",)):
+        if checkpoint_dc[key] != cfg.diffusion[key]:
+            raise ValueError(f"Evaluation {key} does not match the policy checkpoint")
+    diff = build_action_policy(diff_ckpt["config"], act_dim, cond_dim).to(device)
     ckpt_prediction_type = diff_ckpt.get("config", {}).get("diffusion", {}).get("prediction_type")
-    if ckpt_prediction_type != cfg.diffusion.prediction_type:
+    if checkpoint_kind == "diffusion" and ckpt_prediction_type != cfg.diffusion.prediction_type:
         raise ValueError(
             f"Diffusion checkpoint prediction_type={ckpt_prediction_type!r} does not match "
             f"evaluation config {cfg.diffusion.prediction_type!r}; retrain or select a matching checkpoint"
         )
-    diff.load_state_dict(diff_ckpt["model"])
+    diff.load_state_dict(diff_ckpt.get("ema_model", diff_ckpt["model"]))
     diff.eval()
 
-    max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
+    env_limit = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None)
+    max_steps = min(cfg.max_steps, env_limit) if env_limit else cfg.max_steps
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
-    for _ in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
+    for episode_index in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
+        set_seed(cfg.seed + episode_index)
         obs = env.reset()
+        initial_observation = _obs_to_vec(obs, cfg.task.obs_keys).tolist()
         done = False
         success = 0.0
         collision = 0.0
@@ -110,11 +115,15 @@ def main(cfg):
         open_loop_plan = None
         open_loop_idx = 0
         while not done and steps < max_steps:
-            obs_vec = _obs_to_vec(obs, cfg.task.obs_keys).unsqueeze(0).to(device)
+            policy_obs = object_observation_sham(obs, cfg.sham_object_offset)
+            obs_vec = _obs_to_vec(policy_obs, cfg.task.obs_keys).unsqueeze(0).to(device)
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
 
-            state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z})
+            if is_blackout(steps, cfg.warmup_steps, cfg.blackout_period, cfg.blackout_duration):
+                state = wm.rssm.imagine_step(prev_action, {"h": h, "z": z}, deterministic=True)
+            else:
+                state = wm.rssm.observe_step(obs_embed, prev_action, {"h": h, "z": z}, deterministic=True)
             h, z = state["h"], state["z"]
             belief = torch.cat([h, z], dim=-1)
             if mode == "open_loop":
@@ -128,19 +137,21 @@ def main(cfg):
                 action = select_rhc_action(seq)
 
             # x0 is intrinsically bounded by tanh in GaussianDiffusion.
-            action_env = _denormalize(action, act_mean, act_std)
+            action_env = _denormalize(action, act_mean, act_std).clamp(-1.0, 1.0)
             action_np = action_env.squeeze(0).detach().cpu().numpy()
             obs, reward, done, info = env.step(action_np)
-            prev_action = action
+            prev_action = _normalize(action_env, act_mean, act_std)
 
             ep_return += float(reward)
             steps += 1
-            if info.get("success", False):
+            if task_success(env, info):
                 success = 1.0
             if info.get("collision", False) or info.get("violation", False):
                 collision = 1.0
 
         episodes.append({
+            "seed": cfg.seed + episode_index,
+            "initial_observation": initial_observation,
             "success": success,
             "collision": collision,
             "return": ep_return,
@@ -148,6 +159,11 @@ def main(cfg):
         })
 
     metrics = summarize_episode_metrics(episodes)
+    metrics["episodes"] = episodes
+    metrics.update(policy_type=checkpoint_kind, sampler=cfg.sampler, inference_steps=cfg.inference_steps,
+                   blackout_duration=cfg.blackout_duration, blackout_period=cfg.blackout_period,
+                   warmup_steps=cfg.warmup_steps)
+    metrics["sham_object_offset"] = list(cfg.sham_object_offset)
     metrics["avg_return"] = float(np.mean([e["return"] for e in episodes])) if episodes else 0.0
     metrics["avg_length"] = float(np.mean([e["length"] for e in episodes])) if episodes else 0.0
 

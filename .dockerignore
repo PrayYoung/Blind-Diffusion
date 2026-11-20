@@ -8,3 +8,13 @@ data/
 .git/
 *.hdf5
 *.tar.gz
+.codex/
+.runpod/
+.colab/
+.vast/runs/
+research/
+RESEARCH_STATE.*
+outputs/
+checkpoints/
+robomimic_datasets/
+.env

@@ -38,36 +38,42 @@ class FiLM(nn.Module):
 
 
 class ResBlock1D(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int, cond_dim: int):
+    def __init__(self, in_ch: int, out_ch: int, cond_dim: int, normalized: bool = False):
         super().__init__()
         self.conv1 = nn.Conv1d(in_ch, out_ch, 3, padding=1)
         self.conv2 = nn.Conv1d(out_ch, out_ch, 3, padding=1)
         self.film = FiLM(cond_dim, out_ch)
         self.act = nn.SiLU()
         self.skip = nn.Conv1d(in_ch, out_ch, 1) if in_ch != out_ch else nn.Identity()
+        self.norm1 = nn.GroupNorm(math.gcd(8, out_ch), out_ch) if normalized else nn.Identity()
+        self.norm2 = nn.GroupNorm(math.gcd(8, out_ch), out_ch) if normalized else nn.Identity()
 
     def forward(self, x: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
-        h = self.act(self.conv1(x))
+        h = self.act(self.norm1(self.conv1(x)))
         h = self.film(h, cond)
-        h = self.act(self.conv2(h))
+        h = self.act(self.norm2(self.conv2(h)))
         return h + self.skip(x)
 
 
 class UNet1D(nn.Module):
-    def __init__(self, act_dim: int, horizon: int, cond_dim: int, base_ch: int = 64):
+    def __init__(self, act_dim: int, horizon: int, cond_dim: int, base_ch: int = 64, architecture: str = "legacy"):
         super().__init__()
         self.horizon = horizon
+        if architecture not in ("legacy", "skip_v2"):
+            raise ValueError(f"Unknown architecture: {architecture}")
+        self.architecture = architecture
+        normalized = architecture == "skip_v2"
         self.time_emb = SinusoidalTimeEmbedding(base_ch)
         self.time_mlp = nn.Sequential(nn.Linear(base_ch, base_ch * 2), nn.SiLU(), nn.Linear(base_ch * 2, base_ch))
 
-        self.down1 = ResBlock1D(act_dim, base_ch, cond_dim + base_ch)
-        self.down2 = ResBlock1D(base_ch, base_ch * 2, cond_dim + base_ch)
+        self.down1 = ResBlock1D(act_dim, base_ch, cond_dim + base_ch, normalized)
+        self.down2 = ResBlock1D(base_ch, base_ch * 2, cond_dim + base_ch, normalized)
         self.pool = nn.AvgPool1d(2)
 
-        self.mid = ResBlock1D(base_ch * 2, base_ch * 2, cond_dim + base_ch)
+        self.mid = ResBlock1D(base_ch * 2, base_ch * 2, cond_dim + base_ch, normalized)
 
         self.up = nn.Upsample(scale_factor=2, mode="nearest")
-        self.up1 = ResBlock1D(base_ch * 2, base_ch, cond_dim + base_ch)
+        self.up1 = ResBlock1D(base_ch * (3 if normalized else 2), base_ch, cond_dim + base_ch, normalized)
         self.out = nn.Conv1d(base_ch, act_dim, 1)
 
     def forward(self, x: torch.Tensor, t: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
@@ -79,5 +85,8 @@ class UNet1D(nn.Module):
         d2 = self.down2(self.pool(d1), cond_all)
         m = self.mid(d2, cond_all)
         u = self.up(m)
+        if self.architecture == "skip_v2":
+            u = torch.nn.functional.interpolate(u, size=d1.shape[-1], mode="nearest")
+            u = torch.cat([u, d1], dim=1)
         u = self.up1(u, cond_all)
         return self.out(u)

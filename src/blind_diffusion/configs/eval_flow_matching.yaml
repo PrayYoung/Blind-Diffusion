@@ -1,0 +1,10 @@
+defaults:
+  - eval_diffusion
+  - _self_
+
+exp_name: eval_flow_lift
+policy_type: flow_matching
+sampler: euler
+inference_steps: 4
+wm_checkpoint: runs/wm_lift_recovery_v2/checkpoints/best.pt
+diff_checkpoint: runs/flow_lift_recovery_v2/checkpoints/best.pt

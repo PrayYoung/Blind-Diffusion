@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "experiment": "lift_ot_path_cfm_recovery_v2",
+  "date": "2026-11-20",
+  "source_model_commit": "ee1bb70",
+  "task": "RoboMimic Lift, PH low_dim_v141",
+  "training": {
+    "seed": 0,
+    "train_demonstrations": 190,
+    "validation_demonstrations": 10,
+    "normalization": "Training demonstrations only; shared split and statistics across stages",
+    "world_model_updates": 4000,
+    "selected_world_model_step": 2000,
+    "policy_epochs": 100,
+    "selected_policy_epoch_zero_based": 99,
+    "selection": "EMA held-out velocity loss, four Monte Carlo draws",
+    "world_model_config": "train_world_model_recovery",
+    "policy_config": "train_flow_matching_recovery"
+  },
+  "evaluation": {
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "episodes_per_condition": 20,
+    "max_steps": 500,
+    "sampler": "Euler",
+    "inference_steps": 4,
+    "action_horizon": 8,
+    "execution": "Replan every environment step; execute the first action",
+    "success_definition": "Environment task predicate true at any point within the episode",
+    "paired_initial_observations": "All 19 observation coordinates exactly equal for each seed",
+    "expansion_rule": "Evaluate five paired seeds, expand to twenty if at least three clean episodes succeed; all outcomes retained",
+    "clean": {
+      "blackout_duration": 0,
+      "successes": 19,
+      "success_by_seed": [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    },
+    "blind": {
+      "warmup_observations": 5,
+      "blackout_period": 20,
+      "blackout_duration": 20,
+      "successes": 18,
+      "success_by_seed": [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "policy_inputs_after_warmup": "Previous RSSM state and executed actions; no new observations"
+    }
+  },
+  "limits": [
+    "One training seed and twenty paired evaluation seeds on one simulated task",
+    "Success at any point is not a sustained-hold or recovery guarantee",
+    "No independently validated Can, vision, latency, or matched baseline results in this release",
+    "Bundled repairs and research changes do not isolate the cause of historical failures"
+  ]
+}

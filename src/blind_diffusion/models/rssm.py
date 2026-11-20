@@ -36,7 +36,7 @@ class RSSM(nn.Module):
         eps = torch.randn_like(std)
         return mean + eps * std
 
-    def observe_step(self, obs_embed: torch.Tensor, action: torch.Tensor, state: dict):
+    def observe_step(self, obs_embed: torch.Tensor, action: torch.Tensor, state: dict, deterministic: bool = False):
         # obs_embed: [B, obs_dim], action: [B, action_dim]
         h = state["h"]
         z = state["z"]
@@ -44,10 +44,10 @@ class RSSM(nn.Module):
         h = self.gru(x, h)
         post_params = self.post_net(torch.cat([h, obs_embed], dim=-1))
         post_mean, post_std = self._get_stats(post_params)
-        z = self._sample(post_mean, post_std)
-        return {"h": h, "z": z}
+        z = post_mean if deterministic else self._sample(post_mean, post_std)
+        return {"h": h, "z": z, "post_mean": post_mean, "post_std": post_std}
 
-    def imagine_step(self, action: torch.Tensor, state: dict):
+    def imagine_step(self, action: torch.Tensor, state: dict, deterministic: bool = False):
         # action: [B, action_dim]
         h = state["h"]
         z = state["z"]
@@ -56,7 +56,7 @@ class RSSM(nn.Module):
 
         prior_params = self.prior_net(h)
         prior_mean, prior_std = self._get_stats(prior_params)
-        z = self._sample(prior_mean, prior_std)
+        z = prior_mean if deterministic else self._sample(prior_mean, prior_std)
         return {
             "h": h,
             "z": z,
@@ -64,7 +64,7 @@ class RSSM(nn.Module):
             "prior_std": prior_std,
         }
 
-    def observe(self, obs_seq: torch.Tensor, action_seq: torch.Tensor):
+    def observe(self, obs_seq: torch.Tensor, action_seq: torch.Tensor, deterministic: bool = False):
         # obs_seq: [B, T, obs_dim], action_seq: [B, T, action_dim]
         B, T, _ = obs_seq.shape
         h = torch.zeros(B, self.deter_dim, device=obs_seq.device)
@@ -84,7 +84,7 @@ class RSSM(nn.Module):
 
             post_params = self.post_net(torch.cat([h, obs_seq[:, t]], dim=-1))
             post_mean, post_std = self._get_stats(post_params)
-            z = self._sample(post_mean, post_std)
+            z = post_mean if deterministic else self._sample(post_mean, post_std)
 
             hs.append(h)
             zs.append(z)
@@ -102,7 +102,7 @@ class RSSM(nn.Module):
             "post_std": torch.stack(post_stds, dim=1),
         }
 
-    def imagine(self, action_seq: torch.Tensor, start_state: dict):
+    def imagine(self, action_seq: torch.Tensor, start_state: dict, deterministic: bool = False):
         B, T, _ = action_seq.shape
         h = start_state["h"]
         z = start_state["z"]
@@ -111,7 +111,7 @@ class RSSM(nn.Module):
         prior_means, prior_stds = [], []
 
         for t in range(T):
-            step = self.imagine_step(action_seq[:, t], {"h": h, "z": z})
+            step = self.imagine_step(action_seq[:, t], {"h": h, "z": z}, deterministic=deterministic)
             h = step["h"]
             z = step["z"]
             hs.append(step["h"])

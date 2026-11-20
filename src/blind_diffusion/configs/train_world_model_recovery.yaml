@@ -1,0 +1,17 @@
+defaults:
+  - train_world_model
+  - _self_
+
+# Versioned hypothesis from the screenshot review; validate before claiming
+# improved task performance. Clean targets and padding masks apply throughout.
+exp_name: wm_lift_recovery_v2
+batch_size: 128
+max_steps: 4000
+val_every: 250
+weight_decay: 1.0e-4
+obs_weight: 10.0
+kl_scale: 0.1
+kl_free_bits: 0.5
+imag_horizon: 20
+imag_weight: 5.0
+overshoot_weight: 1.0
