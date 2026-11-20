@@ -2,9 +2,13 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-if command -v conda >/dev/null 2>&1; then
-  eval "$(conda shell.bash hook)"
-  conda activate blind_diffusion_py310
+# Prefer the caller's activated environment; otherwise use the Vast runtime
+# provisioned by setup_vast_env.sh when it is available.
+if [[ -z "${VIRTUAL_ENV:-}" && "${CONDA_DEFAULT_ENV:-base}" == base ]] && command -v conda >/dev/null 2>&1; then
+  if conda env list | awk '$1 == "blind_diffusion_py310" { found = 1 } END { exit !found }'; then
+    eval "$(conda shell.bash hook)"
+    conda activate blind_diffusion_py310
+  fi
 fi
 export PYTHONPATH="$ROOT/src:$ROOT:${PYTHONPATH:-}"
 export ROBO_DATA="${ROBO_DATA:-$ROOT/robomimic_datasets}"

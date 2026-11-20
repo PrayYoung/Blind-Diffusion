@@ -1,300 +1,141 @@
-# 🕶️ Blind Diffusion (BD)
-<p align="center">
-  <img src="assets/pipeline.png" width="800">
-</p>
+# Blind-Diffusion
 
+**Learn from demonstrations. Act from a remembered belief when observations stop.**
 
-> **World models meet diffusion control.**  
-> Tiny RSSM + MPC + Diffusion for RoboMimic manipulation.
+Blind-Diffusion combines a recurrent state-space model (RSSM) with a generative
+action policy for robotic manipulation. The validated recovery configuration
+uses **conditional flow matching with Gaussian OT paths**, four Euler steps,
+and receding-horizon execution.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![PyTorch](https://img.shields.io/badge/pytorch-2.x-orange.svg)
-![RoboMimic](https://img.shields.io/badge/dataset-RoboMimic-purple.svg)
-![Status](https://img.shields.io/badge/status-research%20prototype-yellow.svg)
+![Lift task success: 19 of 20 clean episodes and 18 of 20 permanently blind episodes, with every paired outcome shown](assets/lift_results.png)
 
----
+## Validated result
 
-## ✨ What is Blind Diffusion?
+| RoboMimic Lift | Task successes | Rate |
+| --- | ---: | ---: |
+| Clean: observations available throughout | 19 / 20 | **95%** |
+| Blind: only the first five observations available | 18 / 20 | **90%** |
 
-**Blind Diffusion** explores a simple but powerful idea:
+Both conditions use the same checkpoint, Euler-4 sampling, and evaluation seeds
+0–19. All 19 initial observation coordinates match exactly for every pair.
+After steps 0–4, the blind policy receives **no new observations**: its RSSM
+prior propagates the remembered state using executed actions. This is permanent
+blackout for the rest of each 500-step episode, rather than periodic recovery
+of sensor input.
 
-> Learn a **latent world model**, generate **action plans** with diffusion,  
-> and execute them using **receding-horizon control**.
+**Conclusion:** this configuration learns clean and blind Lift control. The
+result covers **one training seed and one simulated low-dimensional task**.
+Success means the environment's task predicate became true at any point; it
+does not establish a sustained hold, real-robot transfer, or recovery from every
+failure. Can, image-based control, latency comparisons, and superiority over
+baselines are not independently validated by this result. The bundled changes
+also do not identify which individual repair caused historical failures.
 
-This repo implements a minimal research-friendly pipeline for robotic manipulation:
+See the [public result summary](docs/results/lift_flow_matching.json),
+[protocol and evidence limits](docs/validated_results.md), and
+[figure-generation script](scripts/plot_lift_results.py).
 
-🧠 RSSM world model  
-🎯 MPC planning in latent space  
-🌫 Diffusion action sequence generation  
-👁 Image-based perception (Milestone 3)
+## How it works
 
-Designed to be:
-
-- 🔬 research-oriented  
-- 🧩 modular & extensible  
-- ⚡ runnable on a single GPU  
-- 🤖 aligned with modern model-based robotics  
-
----
-
-## 🚀 Milestone Overview
-
-### 🥇 Milestone 1 — Latent World Model + MPC
-Train a small RSSM world model on RoboMimic low-dimensional observations and run receding-horizon MPC in latent space.
-
-Outputs:
-- success rate
-- collision / constraint violations
-- open-loop baseline comparison
-
----
-
-### 🥈 Milestone 2 — Diffusion Policy
-Train a diffusion model to generate action sequences conditioned on RSSM belief state.
-
-- diffusion open-loop baseline
-- diffusion + receding horizon control
-
----
-
-### 🥉 Milestone 3 — Vision-Based Control
-Extend to image observations with a CNN encoder.
-
-- image-conditioned RSSM
-- diffusion planning from vision
-- contact / collision metrics
-
----
-
-## 🐳 Docker (Recommended)
-Build image (includes system deps, MuJoCo 2.1.0, uv, robomimic):
-```bash
-docker build -t blind-diffusion:latest .
+```mermaid
+flowchart LR
+    O[Current observation] --> P[RSSM posterior]
+    H[Previous belief + executed action] --> P
+    H --> R[RSSM prior during blackout]
+    P --> B[Pre-action belief]
+    R --> B
+    B --> F[Conditional flow policy: 4 Euler steps]
+    F --> A[Execute first action of an 8-step plan]
+    A --> E[Environment]
+    A --> H
 ```
-Run container:
-```bash
-docker run --rm -it \
-  -v $PWD:/workspace \
-  -w /workspace \
-  blind-diffusion:latest
-```
-If you want to use local datasets:
-```bash
-docker run --rm -it \
-  -v $PWD:/workspace \
-  -v /path/to/robomimic_datasets:/data \
-  -e ROBO_DATA=/data \
-  -w /workspace \
-  blind-diffusion:latest
-```
-Render backend:
-- Default in Docker is `MUJOCO_GL=egl`. If you only have CPU/no GPU, use `osmesa` instead:
-```bash
-docker run --rm -it \
-  -e MUJOCO_GL=osmesa \
-  -e PYOPENGL_PLATFORM=osmesa \
-  -v $PWD:/workspace \
-  -w /workspace \
-  blind-diffusion:latest
-```
----
 
-## ⚡ Quickstart (Local)
+The causal convention is `belief[t] = posterior(obs[t], action[t-1])` when
+visible, and `belief[t] = prior(belief[t-1], action[t-1])` when blind. The policy
+then chooses `action[t]`. True observations can be logged for diagnostics during
+blackout, but are not used to update the blind policy's belief.
+
+The two training stages share a seeded **190/10 demonstration split** and
+training-only normalization. Recovery training includes padding masks, short
+demonstrations, deterministic beliefs, multi-step prior objectives, policy
+blackout augmentation, and EMA selection by held-out velocity loss. The flow
+field and intermediate ODE states are unbounded; completed native actions clamp
+to `[-1, 1]` once at the endpoint.
+
+“OT paths” refers to the Gaussian conditional path; this implementation uses
+independent Gaussian/action pairs, not minibatch optimal-transport assignment.
+Legacy bounded direct-`x0` diffusion with DDIM/DDPM remains available. The
+95%/90% result above belongs specifically to the flow recovery configuration.
+
+## Reproduce
+
+Tested training environment: Linux, Python 3.10.22, PyTorch 2.4.0 + CUDA 12.4,
+MuJoCo 2.3.7, RoboSuite 1.4.1, RoboMimic 0.3.0, and an NVIDIA T4. Use a clean
+Python 3.10 environment; the commands below install the tested CUDA stack.
+
 ```bash
-uv venv
+python3.10 -m venv .venv
 source .venv/bin/activate
-uv pip install -e .
-export PYTHONPATH=./src
+python -m pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 \
+  --index-url https://download.pytorch.org/whl/cu124
+python -m pip install -r requirements-vast.txt
+python -m pip install mujoco==2.3.7 robosuite==1.4.1
+python -m pip install --no-deps robomimic==0.3.0
+python -m pip install -e .
+export ROBO_DATA="$PWD/robomimic_datasets"
+export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl MPLBACKEND=Agg
 ```
-If you need RoboMimic env evaluation on Linux (installs this repo + robomimic):
-```bash
-uv pip install -e ".[robomimic]"
-```
-You also might need mujoco_py installed
----
 
-## 📦 RoboMimic Data Setup
-This section applies to both local and Docker runs. For Docker, mount your dataset folder and set `ROBO_DATA=/data` (see Docker section).
+Download the public Lift demonstrations and place them at the configured path:
 
-1. Install RoboMimic and dependencies.
-2. Download low-dim datasets (default: `lift/low_dim_v141.hdf5`):
-`https://robomimic.github.io/docs/datasets/overview.html`
-`https://robomimic.github.io/docs/datasets/datasets.html`
-`https://robomimic.github.io/docs/datasets/robomimic_datasets.html`
-3. Set dataset path:
 ```bash
-export ROBO_DATA=/path/to/robomimic/datasets
+python -m robomimic.scripts.download_datasets \
+  --tasks lift --dataset_types ph --hdf5_types low_dim --download_dir "$ROBO_DATA"
+cp "$ROBO_DATA/lift/ph/low_dim_v141.hdf5" "$ROBO_DATA/lift/low_dim_v141.hdf5"
 ```
-Eval step limit:
-```bash
-uv run python scripts/eval.py task=lift eval.mode=mpc max_steps=500
-```
-Override task dataset path (Hydra):
-```bash
-uv run python scripts/train_wm.py task=lift task.hdf5_name=lift/low_dim_v141.hdf5
-```
-Example download:
-```bash
-mkdir -p ./robomimic_datasets
-cd ./robomimic_datasets
-curl -L -o lift_low_dim.hdf5 "<direct_dataset_link>"
-export ROBO_DATA=./robomimic_datasets
-```
-RoboMimic downloader (after installing robomimic):
-```bash
-python -m robomimic.scripts.download_datasets --task lift --dataset_type low_dim --version v141 --download_dir ./robomimic_datasets
-export ROBO_DATA=./robomimic_datasets
-```
----
 
-## ✅ Run Order (Minimal)
-1. Train world model (low-dim):
-```bash
-uv run python scripts/train_wm.py task=lift
-```
-2. Evaluate MPC:
-```bash
-uv run python scripts/eval.py task=lift eval.mode=mpc
-```
-3. Train diffusion (Milestone 2):
-```bash
-uv run python scripts/train_diffusion.py task=lift
-```
-4. Evaluate diffusion (RHC):
-```bash
-uv run python scripts/eval_diffusion.py task=lift
-```
----
-
-## 🧪 Optional Baselines
-BC (low-dim):
-```bash
-uv run python scripts/train_bc_lowdim.py task=lift
-uv run python scripts/eval.py task=lift eval.mode=bc_eval
-```
-Diffusion open-loop:
-```bash
-uv run python scripts/eval_diffusion.py task=lift eval.mode=open_loop
-```
-Image BC:
-```bash
-uv run python scripts/train_bc_image.py task=lift_image
-uv run python scripts/eval.py task=lift_image eval.mode=image_bc_eval
-```
-Note: image size is controlled by `task.image_size` (train and eval are kept consistent).
----
-
-## 👁 Milestone 3 (Images)
-1. Train image world model:
-```bash
-uv run python scripts/train_wm_image.py task=lift_image
-```
-2. Train image diffusion:
-```bash
-uv run python scripts/train_diffusion_image.py task=lift_image
-```
-3. Evaluate image diffusion (RHC):
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_rhc
-```
-Open-loop image diffusion:
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_open_loop
-```
-Sensor-block demo (image eval):
-```bash
-uv run python scripts/eval.py task=lift_image eval.mode=image_rhc \
-  eval.save_video=true eval.sensor_block.enable=true eval.sensor_block.mode=prior
-```
-Diffusion config preset:
-```bash
-uv run python scripts/train_diffusion.py task=lift diffusion=diffusion_full
-```
----
-
-## Conditional flow matching recovery option
-
-The recovery trainer supports a raw velocity-field UNet with the Gaussian OT
-conditional path from [Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747):
-`x_t = (1 - (1 - sigma_min) * t) * noise + t * actions`, with target velocity
-`actions - (1 - sigma_min) * noise`. This uses independent Gaussian/data pairs;
-it does not implement minibatch optimal-transport assignment.
-
-Train the corrected world model first, then the flow policy using its saved
-episode split and normalization. Set `ROBO_DATA` to the dataset root.
+Train the world model (4,000 updates), then the flow policy (100 epochs):
 
 ```bash
 python -m blind_diffusion.train.train_world_model --config-name train_world_model_recovery
 python -m blind_diffusion.train.train_diffusion --config-name train_flow_matching_recovery
-python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching
-python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching blackout_duration=20
 ```
 
-The policy uses EMA, held-out velocity loss, deterministic RSSM beliefs, padding
-masks and prior-blackout augmentation. Euler sampling defaults to four steps;
-set `inference_steps=2` for the two-step comparison. Velocity and intermediate
-ODE states are unbounded; actions clamp once at the endpoint. Continuous time
-is scaled by 1000 only inside the shared sinusoidal embedding.
-
-Before a larger experiment, run the one-target engineering gate:
+Evaluate both conditions with the same seeds and checkpoints:
 
 ```bash
-python scripts/gate_flow_matching.py --dataset "$ROBO_DATA/lift/low_dim_v141.hdf5" --output outputs/flow_gate/result.json
+python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching \
+  exp_name=eval_flow_clean episodes=20 seed=0 max_steps=500 blackout_duration=0
+python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching \
+  exp_name=eval_flow_blind episodes=20 seed=0 max_steps=500 \
+  warmup_steps=5 blackout_period=20 blackout_duration=20
 ```
 
-This gate does not establish held-out imitation or simulator task success.
+Metrics, per-episode seeds, and initial observations are written to
+`runs/<exp_name>/diffusion_metrics.json`. For a small CUDA execution check before
+full training, run `bash scripts/run_recovery_v2_smoke.sh`; its short training
+budget cannot establish task performance. See the
+[existing-Colab workflow](docs/colab_recovery.md) for isolated remote execution.
 
-## 📁 Project Layout
+## Checks and figures
 
+```bash
+python -m pip install pytest
+python -m pytest -q
+python scripts/plot_lift_results.py
 ```
-src/blind_diffusion/configs/ — experiment & model configs  
-scripts/ — CLI entry points  
-src/blind_diffusion/ — core library  
-runs/ — outputs & checkpoints  
-```
-Key modules:
-- `src/blind_diffusion/train/` — training entrypoints (WM, diffusion, baselines)
-- `src/blind_diffusion/eval/` — evaluation entrypoints (low-dim, diffusion, image)
-- `src/blind_diffusion/diffusion/` — diffusion models and schedulers
-- `src/blind_diffusion/models/` — RSSM + encoders + heads
----
 
-## 🧩 Design Notes
+The figure is generated from a curated result summary. Checkpoints, datasets,
+credentials, and private execution logs are not distributed with the result.
+Reproducing the figure redraws the recorded counts; reproducing the experiment
+requires training and evaluation above.
 
-- Milestone 1 uses low-dim observations only  
-- Collision / constraint violation defined in:
-`
-src/blind_diffusion/planner/cost.py
-`
----
+## Scope
 
-## 🎯 Why this project?
+- **Validated:** low-dimensional Lift with RSSM-conditioned OT-path flow control.
+- **Available for experiments:** direct-`x0` diffusion, latent MPC, image encoders,
+  and behavioral-cloning entrypoints.
+- **Still to establish:** additional training seeds, more tasks, matched baseline
+  comparisons, and controlled ablations of the recovery changes.
 
-Modern robot learning is converging toward:
-
-✔ world models  
-✔ generative planning  
-✔ receding horizon control  
-
-This repo is a minimal playground for exploring that convergence.
-
----
-
-## 🛣 Roadmap
-
-- cross-attention planning  
-- latent diffusion planning  
-- multi-task RoboMimic  
-- real robot transfer  
-- uncertainty-aware planning  
-
----
-
-## 📜 License
-
-MIT License — see LICENSE.
-
----
-
-⭐ If you find this useful, give it a star and experiment freely.
+Source: [`src/blind_diffusion/`](src/blind_diffusion/). License: [MIT](LICENSE).
