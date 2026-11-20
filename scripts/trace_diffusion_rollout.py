@@ -64,6 +64,8 @@ def main() -> None:
     parser.add_argument("--blackout-period", type=int, default=20)
     parser.add_argument("--blackout-duration", type=int, default=0)
     parser.add_argument("--inference-steps", type=int)
+    parser.add_argument("--record-reconstruction", action="store_true",
+                        help="Record decoded belief error against true observations without feeding them to a blind policy.")
     parser.add_argument(
         "--ddim-noise-mode",
         choices=("fresh", "fixed"),
@@ -156,6 +158,30 @@ def main() -> None:
                 "h_norm": float(h.norm().item()),
                 "z_norm": float(z.norm().item()),
             })
+            if args.record_reconstruction:
+                target_n = _normalize(obs_vec, norm.get("obs_mean"), norm.get("obs_std"))
+                prediction_n = wm.obs_head(belief)
+                error = (prediction_n - target_n).square().squeeze(0)
+                prediction_raw = prediction_n
+                if norm.get("obs_mean") is not None and norm.get("obs_std") is not None:
+                    prediction_raw = (prediction_n * torch.as_tensor(norm["obs_std"], device=device)
+                                      + torch.as_tensor(norm["obs_mean"], device=device))
+                offset = 0
+                feature_errors = {}
+                position_errors = {}
+                for key in obs_keys:
+                    width = int(np.asarray(obs[key]).size)
+                    feature_errors[key] = float(error[offset:offset + width].mean())
+                    if key in ("robot0_eef_pos", "object"):
+                        position_errors[key] = float((prediction_raw[:, offset:offset + 3]
+                                                      - obs_vec[:, offset:offset + 3]).norm())
+                    offset += width
+                trajectory[-1].update({
+                    "decoded_observation_normalized": prediction_n.squeeze(0).cpu().tolist(),
+                    "observation_mse_normalized": float(error.mean()),
+                    "observation_mse_by_feature": feature_errors,
+                    "position_error_m_by_feature": position_errors,
+                })
             obs, reward, done, info = env.step(action_np)
             trajectory[-1].update({
                 "next_observation": _raw_obs(obs, obs_keys),

@@ -36,6 +36,19 @@ do not delete guards to repeat completed or negative experiments.
    permanent-blackout episodes. It verifies equal initial observations and adds
    seeds 5–19 only when at least three of the first five clean episodes succeed.
    Report every outcome, including failures.
+9. For the observed seed-0 clean-success/blind-failure pair, upload
+   `scripts/trace_diffusion_rollout.py` and execute
+   `scripts/colab_trace_blind_failure.py` after the primary evaluation completes.
+   Its optional reconstruction probe is passive: true observations measure
+   prediction error but are not supplied to a blind policy. This selected-failure
+   diagnostic is separate from the success-rate evaluation.
+
+`scripts/audit_warm_start.py` provides a further offline diagnostic with the
+same checkpoint and held-out episode split. It compares expert-action rollouts
+after 5, 10, or 20 visible observations against an all-visible reference, and
+reports per-step reconstruction and physical position errors. Run it in the
+isolated environment with `--checkpoint`, `--dataset`, and `--output` paths.
+It does not change the five-visible-observation control benchmark.
 
 Inspect explicit remote state and expected output files: the Colab CLI's own
 exit code alone may not distinguish a Python workload exception. Download
