@@ -13,7 +13,7 @@ dependencies = [
   "h5py",
   "imageio",
   "tqdm",
-  "mujoco==3.5.0",
+  "mujoco==2.3.7",
   "numba",
   "scipy"
 ]

@@ -106,6 +106,7 @@ def main() -> None:
 
     episodes = []
     for episode_index in range(args.episodes):
+        set_seed(args.seed + episode_index)
         obs = env.reset()
         h = torch.zeros(1, model_cfg.rssm.deter_dim, device=device)
         z = torch.zeros(1, model_cfg.rssm.stoch_dim, device=device)

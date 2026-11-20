@@ -13,14 +13,30 @@ from omegaconf import OmegaConf
 from blind_diffusion.data.robomimic_dataset import build_episode_datasets
 from blind_diffusion.diffusion.diffusion import GaussianDiffusion
 from blind_diffusion.diffusion.model import UNet1D
-from blind_diffusion.eval.protocol import is_blackout, task_success
+from blind_diffusion.eval.protocol import is_blackout, task_success, object_observation_sham
 from blind_diffusion.models.rssm import RSSM
-from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_chunk_starts
+from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_chunk_starts, sample_conditioning_queries
 from blind_diffusion.train.train_world_model import WorldModel, compute_loss
 from blind_diffusion.utils.ema import ModelEMA
 
 
 class RecoveryTrainingTests(unittest.TestCase):
+    def test_sham_keeps_physics_input_unmodified_and_relative_position_consistent(self):
+        original = {"object": np.zeros(10, dtype=np.float32)}
+        changed = object_observation_sham(original, [.2, 0., 0.])
+        self.assertAlmostEqual(float(changed["object"][0]), .2)
+        self.assertAlmostEqual(float(changed["object"][7]), -.2)
+        self.assertTrue(np.array_equal(original["object"], np.zeros(10)))
+
+    def test_augmented_queries_are_blind_and_respect_warmup(self):
+        valid = torch.ones(128, 32, dtype=torch.bool)
+        starts, mask = sample_conditioning_queries(valid, torch.zeros(128, dtype=torch.bool), 8, 4,
+                                                   probability=1., warmup=5, max_duration=20)
+        self.assertTrue(mask[torch.arange(128), starts].all())
+        self.assertFalse(mask[:, :5].any())
+        self.assertTrue((mask.sum(1) <= 20).all())
+        starts, mask = sample_conditioning_queries(valid, torch.zeros(128, dtype=torch.bool), 8, 4, probability=0.)
+        self.assertFalse(mask.any())
     def test_two_stage_training_saves_validated_checkpoints(self):
         from blind_diffusion.train.train_world_model import main as train_wm
         from blind_diffusion.train.train_diffusion import main as train_policy
@@ -62,6 +78,8 @@ class RecoveryTrainingTests(unittest.TestCase):
             flow_ckpt = load_checkpoint(f"{directory}/flow/checkpoints/best.pt")
             self.assertEqual(flow_ckpt["selection"]["metric"], "ema_heldout_velocity_loss")
             self.assertTrue(np.isfinite(flow_ckpt["selection"]["value"]))
+            self.assertTrue((Path(directory) / "flow/checkpoints/last.pt").exists())
+            self.assertFalse(list((Path(directory) / "flow/checkpoints").glob("diffusion_epoch_*.pt")))
 
     def test_split_and_statistics_exclude_validation_episodes(self):
         with tempfile.TemporaryDirectory() as directory:

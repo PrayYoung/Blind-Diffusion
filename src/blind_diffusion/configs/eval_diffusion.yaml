@@ -21,6 +21,7 @@ inference_steps: 10
 warmup_steps: 5
 blackout_period: 20
 blackout_duration: 0
+sham_object_offset: [0.0, 0.0, 0.0]
 
 # checkpoints
 wm_checkpoint: runs/wm_lift/checkpoints/best.pt

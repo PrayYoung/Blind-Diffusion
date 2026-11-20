@@ -12,7 +12,7 @@ from blind_diffusion.utils.logging import JSONLLogger
 from blind_diffusion.utils.checkpoint import save_checkpoint, load_checkpoint
 from blind_diffusion.data.robomimic_dataset import build_episode_datasets
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_chunk_starts, sample_blackout
+from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_conditioning_queries
 from blind_diffusion.utils.ema import ModelEMA
 from blind_diffusion.diffusion.policy import build_action_policy
 
@@ -20,11 +20,10 @@ from blind_diffusion.diffusion.policy import build_action_policy
 def policy_batch_loss(diffusion, wm, batch, cfg, augment=True):
     obs, actions = batch["obs"], batch["actions"]
     valid, is_start = batch["valid"], batch["is_start"]
-    blackout = sample_blackout(obs.shape[0], obs.shape[1], obs.device,
+    starts, blackout = sample_conditioning_queries(valid, is_start, cfg.diffusion.horizon, cfg.burn_in,
         cfg.prior_aug_prob if augment else 0.0, cfg.warmup_steps, cfg.blackout_max_duration)
     with torch.no_grad():
         beliefs = compute_pre_action_beliefs(wm, obs, actions, deterministic=True, blackout=blackout)
-    starts = sample_chunk_starts(valid, is_start, cfg.diffusion.horizon, cfg.burn_in)
     indices = starts[:, None] + torch.arange(cfg.diffusion.horizon, device=obs.device)
     target = actions.gather(1, indices[:, :, None].expand(-1, -1, actions.shape[-1])).transpose(1, 2)
     mask = valid.gather(1, indices).unsqueeze(1)
@@ -129,7 +128,7 @@ def main(cfg):
                 break
 
         save_checkpoint(
-            os.path.join(run_dir, f"checkpoints/diffusion_epoch_{epoch}.pt"),
+            os.path.join(run_dir, "checkpoints/last.pt"),
             {
                 "model": diffusion.state_dict(),
                 "ema_model": ema.model.state_dict(),

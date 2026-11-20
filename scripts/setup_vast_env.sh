@@ -25,10 +25,8 @@ python -m pip install --no-input --no-cache-dir \
   --index-url https://download.pytorch.org/whl/cu124 \
   torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0
 
-# Keep this exactly aligned with the project requirement. A floating <4.0
-# install can select a newer MuJoCo, then fail editable installation when
-# setuptools validates the project's strict mujoco==3.5.0 requirement.
-python -m pip install --no-input --no-cache-dir "mujoco==3.5.0" "robosuite==1.4.1"
+# Match the validated RunPod runtime: robosuite 1.4.1 needs MuJoCo's qM API.
+python -m pip install --no-input --no-cache-dir "mujoco==2.3.7" "robosuite==1.4.1"
 python -m pip install --no-input --no-cache-dir "robomimic==0.3.0" --no-deps
 
 # Install Blind-Diffusion last so remote code uses the transferred snapshot

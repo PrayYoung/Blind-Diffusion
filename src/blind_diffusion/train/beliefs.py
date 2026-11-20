@@ -60,3 +60,29 @@ def sample_blackout(batch_size, length, device, probability=0.5, warmup=5, max_d
             duration = int(torch.randint(1, max_duration + 1, (), device=device))
             mask[b, start:min(length, start + duration)] = True
     return mask
+
+
+def sample_conditioning_queries(valid, is_start, horizon, burn_in, probability=0.5,
+                                warmup=5, max_duration=20):
+    """Select chunks first, then ensure augmented queries are actually blind.
+
+    Feasible blind depths are sampled uniformly. Sequences with no post-warmup
+    real label stay clean; the initial observation is always visible.
+    """
+    if warmup < 1 or max_duration < 1 or not 0 <= probability <= 1:
+        raise ValueError("Invalid query blackout configuration")
+    starts = sample_chunk_starts(valid, is_start, horizon, burn_in)
+    mask = torch.zeros_like(valid, dtype=torch.bool)
+    for b in range(len(starts)):
+        if torch.rand((), device=valid.device) >= probability:
+            continue
+        positions = torch.arange(valid.shape[1] - horizon + 1, device=valid.device)
+        lower = max(warmup, 0 if is_start[b] else burn_in)
+        eligible = positions[(positions >= lower) & valid[b, :len(positions)]]
+        if not len(eligible):
+            continue
+        query = eligible[torch.randint(len(eligible), (), device=valid.device)]
+        starts[b] = query
+        depth = int(torch.randint(1, min(max_duration, int(query) - warmup + 1) + 1, (), device=valid.device))
+        mask[b, int(query) - depth + 1:int(query) + 1] = True
+    return starts, mask

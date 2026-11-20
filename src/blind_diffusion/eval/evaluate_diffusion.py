@@ -10,7 +10,7 @@ from blind_diffusion.utils.metrics import summarize_episode_metrics
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.eval.protocol import is_blackout, task_success
+from blind_diffusion.eval.protocol import is_blackout, task_success, object_observation_sham
 from blind_diffusion.diffusion.policy import build_action_policy
 
 import robomimic.utils.obs_utils as ObsUtils
@@ -98,8 +98,10 @@ def main(cfg):
     max_steps = min(cfg.max_steps, env_limit) if env_limit else cfg.max_steps
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
-    for _ in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
+    for episode_index in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
+        set_seed(cfg.seed + episode_index)
         obs = env.reset()
+        initial_observation = _obs_to_vec(obs, cfg.task.obs_keys).tolist()
         done = False
         success = 0.0
         collision = 0.0
@@ -113,7 +115,8 @@ def main(cfg):
         open_loop_plan = None
         open_loop_idx = 0
         while not done and steps < max_steps:
-            obs_vec = _obs_to_vec(obs, cfg.task.obs_keys).unsqueeze(0).to(device)
+            policy_obs = object_observation_sham(obs, cfg.sham_object_offset)
+            obs_vec = _obs_to_vec(policy_obs, cfg.task.obs_keys).unsqueeze(0).to(device)
             obs_vec_n = _normalize(obs_vec, obs_mean, obs_std)
             obs_embed = wm.encoder(obs_vec_n)
 
@@ -147,6 +150,8 @@ def main(cfg):
                 collision = 1.0
 
         episodes.append({
+            "seed": cfg.seed + episode_index,
+            "initial_observation": initial_observation,
             "success": success,
             "collision": collision,
             "return": ep_return,
@@ -154,9 +159,11 @@ def main(cfg):
         })
 
     metrics = summarize_episode_metrics(episodes)
+    metrics["episodes"] = episodes
     metrics.update(policy_type=checkpoint_kind, sampler=cfg.sampler, inference_steps=cfg.inference_steps,
                    blackout_duration=cfg.blackout_duration, blackout_period=cfg.blackout_period,
                    warmup_steps=cfg.warmup_steps)
+    metrics["sham_object_offset"] = list(cfg.sham_object_offset)
     metrics["avg_return"] = float(np.mean([e["return"] for e in episodes])) if episodes else 0.0
     metrics["avg_length"] = float(np.mean([e["length"] for e in episodes])) if episodes else 0.0
 
