@@ -12,10 +12,9 @@ from blind_diffusion.utils.logging import JSONLLogger
 from blind_diffusion.utils.checkpoint import save_checkpoint, load_checkpoint
 from blind_diffusion.data.robomimic_dataset import build_episode_datasets
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.diffusion.model import UNet1D
-from blind_diffusion.diffusion.diffusion import GaussianDiffusion
 from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_chunk_starts, sample_blackout
 from blind_diffusion.utils.ema import ModelEMA
+from blind_diffusion.diffusion.policy import build_action_policy
 
 
 def policy_batch_loss(diffusion, wm, batch, cfg, augment=True):
@@ -88,14 +87,7 @@ def main(cfg):
         p.requires_grad = False
 
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
-    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=cfg.diffusion.base_ch,
-                 architecture=cfg.diffusion.get("architecture", "legacy")).to(device)
-    diffusion = GaussianDiffusion(
-        unet,
-        timesteps=cfg.diffusion.timesteps,
-        schedule=cfg.diffusion.schedule,
-        prediction_type=cfg.diffusion.prediction_type,
-    ).to(device)
+    diffusion = build_action_policy(cfg, act_dim, cond_dim).to(device)
 
     optim = torch.optim.AdamW(diffusion.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     ema = ModelEMA(diffusion, cfg.ema_decay)
@@ -161,7 +153,7 @@ def main(cfg):
                     "task": OmegaConf.to_container(cfg.task, resolve=True),
                     "wm_checkpoint": cfg.wm_checkpoint,
                     "split": split,
-                    "selection": {"metric": "ema_heldout_denoising_loss", "value": best_val, "epoch": best_epoch},
+                    "selection": {"metric": "ema_heldout_velocity_loss" if cfg.get("policy_type") == "flow_matching" else "ema_heldout_denoising_loss", "value": best_val, "epoch": best_epoch},
                 },
             )
         if cfg.max_train_steps is not None and step >= cfg.max_train_steps:

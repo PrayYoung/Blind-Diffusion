@@ -10,9 +10,8 @@ from blind_diffusion.utils.metrics import summarize_episode_metrics
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.env.robomimic_env import make_env
 from blind_diffusion.train.train_world_model import WorldModel
-from blind_diffusion.diffusion.model import UNet1D
-from blind_diffusion.diffusion.diffusion import GaussianDiffusion
 from blind_diffusion.eval.protocol import is_blackout, task_success
+from blind_diffusion.diffusion.policy import build_action_policy
 
 import robomimic.utils.obs_utils as ObsUtils
 
@@ -77,21 +76,17 @@ def main(cfg):
 
     # diffusion
     diff_ckpt = load_checkpoint(cfg.diff_checkpoint, map_location=device)
-    architecture = diff_ckpt.get("config", {}).get("diffusion", {}).get("architecture", "legacy")
     cond_dim = cfg.model.rssm.deter_dim + cfg.model.rssm.stoch_dim
     checkpoint_dc = diff_ckpt["config"]["diffusion"]
-    for key in ("horizon", "timesteps", "schedule"):
+    checkpoint_kind = diff_ckpt["config"].get("policy_type", "diffusion")
+    if checkpoint_kind != cfg.get("policy_type", "diffusion"):
+        raise ValueError("Evaluation policy_type does not match the checkpoint")
+    for key in (("horizon", "timesteps", "schedule") if checkpoint_kind == "diffusion" else ("horizon",)):
         if checkpoint_dc[key] != cfg.diffusion[key]:
             raise ValueError(f"Evaluation {key} does not match the policy checkpoint")
-    unet = UNet1D(act_dim, cfg.diffusion.horizon, cond_dim, base_ch=checkpoint_dc["base_ch"], architecture=architecture).to(device)
-    diff = GaussianDiffusion(
-        unet,
-        timesteps=cfg.diffusion.timesteps,
-        schedule=cfg.diffusion.schedule,
-        prediction_type=cfg.diffusion.prediction_type,
-    ).to(device)
+    diff = build_action_policy(diff_ckpt["config"], act_dim, cond_dim).to(device)
     ckpt_prediction_type = diff_ckpt.get("config", {}).get("diffusion", {}).get("prediction_type")
-    if ckpt_prediction_type != cfg.diffusion.prediction_type:
+    if checkpoint_kind == "diffusion" and ckpt_prediction_type != cfg.diffusion.prediction_type:
         raise ValueError(
             f"Diffusion checkpoint prediction_type={ckpt_prediction_type!r} does not match "
             f"evaluation config {cfg.diffusion.prediction_type!r}; retrain or select a matching checkpoint"
@@ -99,7 +94,8 @@ def main(cfg):
     diff.load_state_dict(diff_ckpt.get("ema_model", diff_ckpt["model"]))
     diff.eval()
 
-    max_steps = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None) or cfg.max_steps
+    env_limit = getattr(env, "_max_episode_steps", None) or getattr(env, "horizon", None)
+    max_steps = min(cfg.max_steps, env_limit) if env_limit else cfg.max_steps
     episodes = []
     mode = cfg.get("eval", {}).get("mode", "rhc")
     for _ in tqdm(range(cfg.episodes), desc="eval_diffusion", leave=True):
@@ -158,6 +154,9 @@ def main(cfg):
         })
 
     metrics = summarize_episode_metrics(episodes)
+    metrics.update(policy_type=checkpoint_kind, sampler=cfg.sampler, inference_steps=cfg.inference_steps,
+                   blackout_duration=cfg.blackout_duration, blackout_period=cfg.blackout_period,
+                   warmup_steps=cfg.warmup_steps)
     metrics["avg_return"] = float(np.mean([e["return"] for e in episodes])) if episodes else 0.0
     metrics["avg_length"] = float(np.mean([e["length"] for e in episodes])) if episodes else 0.0
 

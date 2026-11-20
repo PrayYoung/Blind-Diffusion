@@ -46,15 +46,22 @@ class RecoveryTrainingTests(unittest.TestCase):
                 policy_cfg = compose(config_name="train_diffusion_recovery", overrides=shared + [
                     "exp_name=policy", f"wm_checkpoint={directory}/wm/checkpoints/best.pt", "epochs=1",
                     "diffusion.base_ch=8", "diffusion.horizon=4", "diffusion.timesteps=10", "val_mc_samples=1"])
+                flow_cfg = compose(config_name="train_flow_matching_recovery", overrides=shared + [
+                    "exp_name=flow", f"wm_checkpoint={directory}/wm/checkpoints/best.pt", "epochs=1", "max_train_steps=1",
+                    "diffusion.base_ch=8", "diffusion.horizon=4", "val_mc_samples=1"])
             with patch("blind_diffusion.train.train_world_model.get_device", return_value=torch.device("cpu")), patch("blind_diffusion.train.train_diffusion.get_device", return_value=torch.device("cpu")):
                 train_wm.__wrapped__(wm_cfg)
                 train_policy.__wrapped__(policy_cfg)
+                train_policy.__wrapped__(flow_cfg)
             logs = [json.loads(line) for line in (Path(directory) / "wm/logs.jsonl").read_text().splitlines()]
             self.assertEqual([row["step"] for row in logs if "val_loss" in row], [2, 3])
             ckpt = load_checkpoint(f"{directory}/policy/checkpoints/best.pt")
             self.assertIn("ema_model", ckpt)
             self.assertFalse(set(ckpt["split"]["train"]) & set(ckpt["split"]["val"]))
             self.assertTrue(np.isfinite(ckpt["selection"]["value"]))
+            flow_ckpt = load_checkpoint(f"{directory}/flow/checkpoints/best.pt")
+            self.assertEqual(flow_ckpt["selection"]["metric"], "ema_heldout_velocity_loss")
+            self.assertTrue(np.isfinite(flow_ckpt["selection"]["value"]))
 
     def test_split_and_statistics_exclude_validation_episodes(self):
         with tempfile.TemporaryDirectory() as directory:

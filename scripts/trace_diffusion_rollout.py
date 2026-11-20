@@ -10,12 +10,11 @@ import h5py
 import numpy as np
 import torch
 
-from blind_diffusion.diffusion.diffusion import GaussianDiffusion
-from blind_diffusion.diffusion.model import UNet1D
 from blind_diffusion.train.train_world_model import WorldModel
 from blind_diffusion.utils.checkpoint import load_checkpoint
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.eval.protocol import is_blackout, task_success
+from blind_diffusion.diffusion.policy import build_action_policy
 
 import robomimic.utils.obs_utils as ObsUtils
 
@@ -64,6 +63,7 @@ def main() -> None:
     parser.add_argument("--warmup-steps", type=int, default=5)
     parser.add_argument("--blackout-period", type=int, default=20)
     parser.add_argument("--blackout-duration", type=int, default=0)
+    parser.add_argument("--inference-steps", type=int)
     parser.add_argument(
         "--ddim-noise-mode",
         choices=("fresh", "fixed"),
@@ -96,12 +96,11 @@ def main() -> None:
 
     diff_ckpt = load_checkpoint(args.diff_checkpoint, map_location=device)
     diff_cfg = diff_ckpt["config"]["diffusion"]
-    if diff_cfg["prediction_type"] != "x0":
+    kind = diff_ckpt["config"].get("policy_type", "diffusion")
+    if kind == "diffusion" and diff_cfg["prediction_type"] != "x0":
         raise RuntimeError("Trace requires the bounded direct-x0 checkpoint")
     cond_dim = model_cfg.rssm.deter_dim + model_cfg.rssm.stoch_dim
-    denoiser = UNet1D(action_dim, diff_cfg["horizon"], cond_dim, base_ch=diff_cfg["base_ch"],
-                      architecture=diff_cfg.get("architecture", "legacy")).to(device)
-    diffusion = GaussianDiffusion(denoiser, diff_cfg["timesteps"], diff_cfg["schedule"], prediction_type="x0").to(device)
+    diffusion = build_action_policy(diff_ckpt["config"], action_dim, cond_dim).to(device)
     diffusion.load_state_dict(diff_ckpt.get("ema_model", diff_ckpt["model"]))
     diffusion.eval()
 
@@ -129,8 +128,8 @@ def main() -> None:
             sequence = diffusion.sample(
                 (1, action_dim, diff_cfg["horizon"]),
                 belief,
-                sampler="ddim",
-                inference_steps=10,
+                sampler="euler" if kind == "flow_matching" else "ddim",
+                inference_steps=args.inference_steps or (4 if kind == "flow_matching" else 10),
                 initial_noise=fixed_noise,
             )
             action = select_rhc_action(sequence)
@@ -200,7 +199,9 @@ def main() -> None:
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps({"ddim_noise_mode": args.ddim_noise_mode, "episodes": episodes}, indent=2) + "\n")
+    output.write_text(json.dumps({"policy_type": kind, "inference_steps": args.inference_steps or (4 if kind == "flow_matching" else 10),
+                                 "blackout_duration": args.blackout_duration, "ddim_noise_mode": args.ddim_noise_mode,
+                                 "episodes": episodes}, indent=2) + "\n")
     print(json.dumps({"episodes": [{k: v for k, v in episode.items() if k != "trajectory"} for episode in episodes]}, indent=2))
 
 

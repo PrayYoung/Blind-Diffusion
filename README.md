@@ -213,7 +213,40 @@ uv run python scripts/train_diffusion.py task=lift diffusion=diffusion_full
 ```
 ---
 
+## Conditional flow matching recovery option
+
+The recovery trainer supports a raw velocity-field UNet with the Gaussian OT
+conditional path from [Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747):
+`x_t = (1 - (1 - sigma_min) * t) * noise + t * actions`, with target velocity
+`actions - (1 - sigma_min) * noise`. This uses independent Gaussian/data pairs;
+it does not implement minibatch optimal-transport assignment.
+
+Train the corrected world model first, then the flow policy using its saved
+episode split and normalization. Set `ROBO_DATA` to the dataset root.
+
+```bash
+python -m blind_diffusion.train.train_world_model --config-name train_world_model_recovery
+python -m blind_diffusion.train.train_diffusion --config-name train_flow_matching_recovery
+python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching
+python -m blind_diffusion.eval.evaluate_diffusion --config-name eval_flow_matching blackout_duration=20
+```
+
+The policy uses EMA, held-out velocity loss, deterministic RSSM beliefs, padding
+masks and prior-blackout augmentation. Euler sampling defaults to four steps;
+set `inference_steps=2` for the two-step comparison. Velocity and intermediate
+ODE states are unbounded; actions clamp once at the endpoint. Continuous time
+is scaled by 1000 only inside the shared sinusoidal embedding.
+
+Before a larger experiment, run the one-target engineering gate:
+
+```bash
+python scripts/gate_flow_matching.py --dataset "$ROBO_DATA/lift/low_dim_v141.hdf5" --output outputs/flow_gate/result.json
+```
+
+This gate does not establish held-out imitation or simulator task success.
+
 ## 📁 Project Layout
+
 ```
 src/blind_diffusion/configs/ — experiment & model configs  
 scripts/ — CLI entry points  
