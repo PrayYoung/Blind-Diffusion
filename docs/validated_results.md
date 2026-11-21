@@ -70,9 +70,10 @@ image-control, latency, real-robot, or baseline-superiority claim is made here.
 Claims from other experiment reports require their own raw metrics and protocol
 audit before inclusion.
 
-## Regenerate the figure
+## Reproduce and compare
 
-With Matplotlib installed, run `python scripts/plot_lift_results.py` from the
-repository root. It reads the curated JSON and writes PNG and SVG versions of
-`assets/lift_results`. This redraws the published evidence; it does not rerun
-the experiment. The training and evaluation commands are in the README.
+Use the [tested installation and commands](setup.md) to rerun the experiment.
+The public JSON records the initial 20-pair result; it does not generate new
+rollouts. A larger matched baseline campaign is in progress, with separate
+protocols and outcome records. No incomplete cells or external screenshot
+claims are included in the headline table.

@@ -24,6 +24,10 @@ outputs/
 .codex/
 .runpod/
 research/**/source_checkpoints/
+research/
+RESEARCH_STATE.*
+inputs/
+robomimic_datasets/
 
 # Data
 .data/
