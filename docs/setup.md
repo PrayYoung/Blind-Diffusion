@@ -12,7 +12,7 @@ python3.10 -m venv .venv
 source .venv/bin/activate
 python -m pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 \
   --index-url https://download.pytorch.org/whl/cu124
-python -m pip install -r requirements-vast.txt
+python -m pip install -r requirements.txt
 python -m pip install mujoco==2.3.7 robosuite==1.4.1
 python -m pip install --no-deps robomimic==0.3.0
 python -m pip install -e .

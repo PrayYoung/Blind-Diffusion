@@ -23,6 +23,7 @@ outputs/
 # under version control instead).
 .codex/
 .runpod/
+.vast/
 research/**/source_checkpoints/
 research/
 RESEARCH_STATE.*
