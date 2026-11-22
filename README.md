@@ -32,13 +32,23 @@ in each 20-step cycle: D=5/10/15 corresponds to 25%/50%/75% scheduled blackout;
 D=20 is permanent blackout. Every method uses the same paired starts within a
 task. Results use one training seed; counts are shown to make sample sizes clear.
 
+![Success across scheduled observation blackout for Lift and Can. CFM and DDIM prior-based controllers retain success while zero-input baselines degrade.](assets/figures/blackout_comparison.svg)
+
+**Which rows are ours?** Every row is implemented and evaluated in this repo.
+The **Blind-Diffusion family** combines our trained RSSM with CFM-4, CFM-2 or
+bounded-x0 DDIM-10 and uses prior-only belief updates during blackout. The
+zero-input chunk controller is our RSSM-based ablation; latent MPC is our
+RSSM-based planning baseline. Reactive BC is the only row without an RSSM.
+CFM, DDIM, RSSM and MPC are established methods; “ours” identifies this
+project's implementations and combinations, not invention of those methods.
+
 ### Lift · 50 paired seeds · 500-step deadline
 
 | Method | Clean | D=5 | D=10 | D=15 | Permanent blackout |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| **OT-path CFM-4 + RSSM prior (ours)** | 49/50 (98.0%) | 50/50 (100.0%) | 50/50 (100.0%) | 48/50 (96.0%) | 45/50 (90.0%) |
-| OT-path CFM-2 + RSSM prior | 45/50 (90.0%) | 47/50 (94.0%) | 47/50 (94.0%) | 46/50 (92.0%) | 44/50 (88.0%) |
-| Bounded-x0 DDIM-10 + RSSM prior | 49/50 (98.0%) | 49/50 (98.0%) | 47/50 (94.0%) | 48/50 (96.0%) | 45/50 (90.0%) |
+| **Blind-Diffusion · CFM-4 + RSSM prior** | 49/50 (98.0%) | 50/50 (100.0%) | 50/50 (100.0%) | 48/50 (96.0%) | 45/50 (90.0%) |
+| Blind-Diffusion · CFM-2 + RSSM prior | 45/50 (90.0%) | 47/50 (94.0%) | 47/50 (94.0%) | 46/50 (92.0%) | 44/50 (88.0%) |
+| Blind-Diffusion · DDIM-10 + RSSM prior | 49/50 (98.0%) | 49/50 (98.0%) | 47/50 (94.0%) | 48/50 (96.0%) | 45/50 (90.0%) |
 | DDIM-10 chunks, zero-input posterior | 50/50 (100.0%) | 50/50 (100.0%) | 34/50 (68.0%) | 11/50 (22.0%) | 0/50 (0.0%) |
 | Reactive BC, zero-input blackout | 44/50 (88.0%) | 49/50 (98.0%) | 24/50 (48.0%) | 0/50 (0.0%) | 0/50 (0.0%) |
 | Latent CEM MPC, learned sparse reward | 0/50 (0.0%) | 0/50 (0.0%) | 0/50 (0.0%) | 0/50 (0.0%) | 0/50 (0.0%) |
@@ -47,8 +57,8 @@ task. Results use one training seed; counts are shown to make sample sizes clear
 
 | Method | Clean | D=5 | D=10 | D=15 | Permanent blackout |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| **OT-path CFM-4 + RSSM prior (ours)** | 21/30 (70.0%) | 26/30 (86.7%) | 26/30 (86.7%) | 26/30 (86.7%) | 21/30 (70.0%) |
-| Bounded-x0 DDIM-10 + RSSM prior | 24/30 (80.0%) | 26/30 (86.7%) | 22/30 (73.3%) | 25/30 (83.3%) | 22/30 (73.3%) |
+| **Blind-Diffusion · CFM-4 + RSSM prior** | 21/30 (70.0%) | 26/30 (86.7%) | 26/30 (86.7%) | 26/30 (86.7%) | 21/30 (70.0%) |
+| Blind-Diffusion · DDIM-10 + RSSM prior | 24/30 (80.0%) | 26/30 (86.7%) | 22/30 (73.3%) | 25/30 (83.3%) | 22/30 (73.3%) |
 | DDIM-10 chunks, zero-input posterior | 24/30 (80.0%) | 7/30 (23.3%) | 6/30 (20.0%) | 0/30 (0.0%) | 0/30 (0.0%) |
 | Reactive BC, zero-input blackout | 5/30 (16.7%) | 0/30 (0.0%) | 0/30 (0.0%) | 0/30 (0.0%) | 0/30 (0.0%) |
 
@@ -102,45 +112,34 @@ and additional training seeds remain future work.
 
 ## 🧠 System architecture
 
-The diagram shows the low-dimensional CFM-4 controller evaluated on Lift and Can. The sensor
+The diagram shows the low-dimensional CFM-4 controller evaluated on Lift and
+Can. The sensor
 gate selects the posterior when visible and the prior during blackout;
 both paths share the same recurrent transition. Inference uses latent means.
 
-```mermaid
-flowchart LR
-    subgraph memory["1 · Causal world-model belief"]
-        direction TB
-        PREV["Previous belief and executed action"] --> GRU["GRU recurrent transition → h_t"]
-        GRU --> GATE
-        OBS["Observation o_t"] --> GATE{"Sensor available?"}
-        GATE -->|Visible| POST["Normalize and encode o_t → posterior mean z_t"]
-        GATE -->|Blackout| PRIOR["Prior mean z_t · no observation encoded"]
-        POST --> BELIEF["Pre-action belief b_t = [h_t, z_t]"]
-        PRIOR --> BELIEF
-    end
-    subgraph policy["2 · Conditional flow policy"]
-        direction TB
-        NOISE["Fresh Gaussian action noise"] --> FLOW["FiLM-conditioned skip U-Net · 4 Euler steps"]
-        FLOW --> CHUNK["8-action plan · clamp endpoint to [-1, 1]"]
-    end
-    subgraph control["3 · Receding-horizon execution"]
-        direction TB
-        EXEC["Execute first 7-D action"]
-        EXEC --> ENV["MuJoCo / RoboSuite environment"]
-        ENV --> NEXT["Next tick: carry belief and executed action; gate the next observation"]
-    end
-    memory -->|Belief b_t| policy
-    policy -->|Action plan| control
-    classDef latent fill:#ede9fe,stroke:#7c3aed,color:#2e1065
-    classDef flow fill:#dbeafe,stroke:#2563eb,color:#172554
-    classDef robot fill:#d1fae5,stroke:#059669,color:#064e3b
-    class PREV,OBS,GATE,GRU,POST,PRIOR,BELIEF latent
-    class NOISE,FLOW,CHUNK flow
-    class EXEC,ENV,NEXT robot
-    style memory fill:#faf5ff,stroke:#a78bfa,color:#2e1065
-    style policy fill:#eff6ff,stroke:#93c5fd,color:#172554
-    style control fill:#ecfdf5,stroke:#6ee7b7,color:#064e3b
-```
+![Causal CFM-4 architecture: shared RSSM transition, observation-gated posterior or prior mean, belief-conditioned four-step flow sampler, and first-action execution with recurrent feedback.](assets/figures/system_architecture.svg)
+
+<details>
+<summary>Exact computation and comparison variants</summary>
+
+1. Update `h_t = GRU(h_{t-1}, [z_{t-1}, a_{t-1}])` using the previous
+   executed action. This transition is shared by visible and blind steps.
+2. When visible, choose the posterior mean from `h_t` and the normalized,
+   encoded observation. When blind, choose the prior mean from `h_t`;
+   the true observation is not encoded. Carry `[h_t, z_t]` to the next tick.
+3. Condition the FiLM U-Net on `[h_t, z_t]`. Starting from fresh Gaussian
+   noise, take four Euler evaluations to generate eight 7-D native actions.
+   Clamp the completed plan to `[-1, 1]`; do not clip intermediate ODE states.
+4. Execute only the first action, discard the other seven, and replan after
+   the next environment step. Save the actual executed action for the RSSM.
+
+The diagram describes CFM-4 inference. DDIM-10 uses the same belief interface
+with a different sampler. The chunk ablation executes all eight planned
+actions and uses zero-input posterior updates during blackout. MPC plans
+through the RSSM with a learned reward; reactive BC bypasses the RSSM.
+Training losses and decoder diagnostics are not inference inputs.
+
+</details>
 
 EMA weights are selected on held-out demonstrations. Alternative Euler step
 counts and bounded-`x0` DDIM/DDPM remain available for comparison; the
@@ -216,5 +215,11 @@ scripts/             reproducible training and evaluation entrypoints
 tests/               focused correctness and causality checks
 docs/                setup, protocols, and curated result records
 ```
+
+The result plot reads only the public aggregate counts; it does not smooth or
+fit the measurements. Regenerate both figures with
+`python -m pip install 'matplotlib>=3.8'` and
+`python scripts/render_readme_figures.py`.
+Editable SVG and high-resolution PNG versions live in `assets/figures/`.
 
 License: [MIT](LICENSE).
