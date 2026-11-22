@@ -31,12 +31,35 @@ means the environment task predicate becomes true within 500 steps; it does
 not require a sustained hold until the final step.
 
 **What this establishes:** this configuration learns clean and blind simulated
-Lift control. A larger matched comparison with BC, DDIM, open-loop execution,
-and latent MPC is in progress. It is not yet a verified baseline-superiority,
-Can, vision, real-robot, or latency result.
+Lift control. A completed, fixed-checkpoint Can comparison is available below. Neither
+comparison establishes baseline superiority, vision, real-robot, or measured
+latency results.
 
 [Recorded counts and per-seed outcomes](docs/results/lift_flow_matching.json)
 · [Full protocol and evidence limits](docs/validated_results.md)
+
+## Can comparison — temporary research snapshot
+
+Success by 300 environment steps; 30 paired seeds per condition, one training
+seed, unchanged selected checkpoints. Permanent blackout begins after five
+visible observations.
+
+| Method | Clean | Permanent blackout |
+| --- | ---: | ---: |
+| OT-path CFM, Euler-4 + RSSM prior | 21/30 (70%) | 21/30 (70%) |
+| Bounded-x0 DDIM-10 + RSSM prior | 24/30 (80%) | 22/30 (73%) |
+| Zero-input DDIM open-loop, 8-action chunks | 24/30 (80%) | 0/30 (0%) |
+| Reactive behavior cloning | 5/30 (17%) | 0/30 (0%) |
+
+On the same CFM trajectories, clean/blind completion rises from 8/30 and 10/30
+by step 115 to 21/30 each by step 250; no method adds successes between steps
+250 and 300. This supports a deadline effect without retraining. It does not
+establish CFM superiority or reproduce external results with different seeds
+and checkpoints. The open-loop baseline uses zero-input posterior updates
+during blackout, rather than prior-only imputation.
+
+[All blackout conditions, deadlines, validation and limitations](docs/results/can_horizon_comparison.md).
+The historical Lift result above uses a separate evaluation protocol.
 
 ## 💡 The core idea
 
@@ -140,9 +163,8 @@ introduced together. These results do not isolate which individual repair
 caused historical failures. Historical failed runs are not a matched baseline
 for an improvement percentage.
 
-Next evidence to establish: additional training seeds, the complete matched
-blackout comparison, Can and other tasks, and partial-modality or image-based
-control. Legacy bounded direct-`x0` DDIM/DDPM, latent MPC, and image entrypoints
+Next evidence to establish: additional training seeds, an isolated prior-only
+imputation ablation, other tasks, and partial-modality or image-based control. Legacy bounded direct-`x0` DDIM/DDPM, latent MPC, and image entrypoints
 remain available for experiments; their availability is not a validated result.
 
 Raw checkpoints, datasets, private execution logs, and personal infrastructure

@@ -27,6 +27,7 @@ lr: 1.0e-4
 weight_decay: 1.0e-6
 epochs: 15
 max_train_steps: null
+resume_checkpoint: null
 grad_clip: 100.0
 log_every: 100
 

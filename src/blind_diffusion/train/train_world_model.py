@@ -10,7 +10,8 @@ import hydra
 from blind_diffusion.utils.seed import set_seed
 from blind_diffusion.utils.device import get_device
 from blind_diffusion.utils.logging import JSONLLogger
-from blind_diffusion.utils.checkpoint import save_checkpoint
+from blind_diffusion.utils.checkpoint import save_checkpoint, load_checkpoint
+from blind_diffusion.utils.training_state import signature, make_state, restore_state, reconcile_log
 from blind_diffusion.data.robomimic_dataset import build_episode_datasets
 from blind_diffusion.models.encoders import MLPEncoder
 from blind_diffusion.models.rssm import RSSM
@@ -179,8 +180,17 @@ def main(cfg):
     logger = JSONLLogger(os.path.join(run_dir, "logs.jsonl"))
 
     best_val = float("inf")
-    step = 0
-    pbar = tqdm(total=cfg.max_steps, desc="train_wm", leave=False, dynamic_ncols=True)
+    step,epochs = 0,0
+    best_path=os.path.join(run_dir,"checkpoints/best.pt")
+    hdf5_path=os.path.join(os.environ.get("ROBO_DATA",""),cfg.task.hdf5_name)
+    training_signature=signature(OmegaConf.to_container(cfg,resolve=True),hdf5_path)
+    if cfg.get("resume_checkpoint"):
+        saved=load_checkpoint(cfg.resume_checkpoint,map_location=device)
+        model.load_state_dict(saved["model"])
+        state=restore_state(saved,optim,scheduler,training_signature,best_path)
+        step,epochs,best_val=state["step"],state["epoch"],state["best_val"]
+        reconcile_log(os.path.join(run_dir,"logs.jsonl"),step,epochs)
+    pbar = tqdm(total=cfg.max_steps,initial=step,desc="train_wm",leave=False,dynamic_ncols=True)
     while step < cfg.max_steps:
         model.train()
         for batch in train_loader:
@@ -215,6 +225,12 @@ def main(cfg):
                 model.train()
             if step >= cfg.max_steps:
                 break
+        epochs += 1
+        save_checkpoint(os.path.join(run_dir,"checkpoints/last.pt"),{
+            "model":model.state_dict(),"config":OmegaConf.to_container(cfg,resolve=True),
+            "norm":dataset.get_norm_stats(),"split":dataset.split,
+            "training_state":make_state(optim,scheduler,training_signature,best_path,
+                                         step=step,epoch=epochs,best_val=best_val)})
 
     metrics = {"best_val": best_val}
     with open(os.path.join(run_dir, "metrics.json"), "w", encoding="utf-8") as f:

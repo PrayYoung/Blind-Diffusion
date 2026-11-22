@@ -1,0 +1,44 @@
+{
+  "id": "matched_baselines_v1",
+  "version": 1,
+  "training_seed": 0,
+  "episodes": {"lift": 50, "can": 30},
+  "max_steps": {"lift": 500, "can": 115},
+  "methods": {
+    "lift": ["cfm4", "cfm2", "ddim10", "open_loop", "bc", "mpc"],
+    "can": ["cfm4", "ddim10", "open_loop", "bc"]
+  },
+  "blackout_durations": [0, 5, 10, 15, 20],
+  "blackout_period": 20,
+  "visible_warmup": 5,
+  "success": "Environment task predicate true at any step; stop on first success, done, or task step limit",
+  "seed_pairing": "Seeds 0..N-1; exact full simulator-state hashes and initial observation vectors must match across every method and blackout duration",
+  "sampling_noise": "Fresh noise per planning step from seed 1000003*episode_seed+step+7919; shared across generative methods and blackout conditions",
+  "training": {
+    "world_model_updates": 4000,
+    "policy_epochs": 100,
+    "batch_size": 128,
+    "learning_rate": 0.0003,
+    "policy_weight_decay": 0.00001,
+    "ema_decay": 0.995,
+    "validation_draws": 4,
+    "split": "Seeded 95%/5% episode split, shared within task; train-only observation statistics; native actions",
+    "cfm": "train_flow_matching_recovery; skip_v2 width128; Gaussian OT path; prior_aug_prob0.5",
+    "ddim": "train_diffusion_recovery; same architecture, data, updates, optimizer, EMA and prior augmentation; bounded x0 objective; DDIM10",
+    "bc": "Reactive 256-wide two-hidden-layer ELU MLP; same training windows/query distribution, batch size and update count; real observations during training; EMA held-out first-action MSE selection",
+    "reuse": "Reuse existing complete Lift WM and CFM checkpoints without retraining; train Lift DDIM/BC and all Can checkpoints once; rerun every evaluation cell under this protocol"
+  },
+  "baseline_definitions": {
+    "cfm4": "RSSM posterior/prior beliefs; Euler4; replan each step; execute first of8 actions",
+    "cfm2": "Same CFM checkpoint as cfm4, Euler2",
+    "ddim10": "RSSM posterior/prior beliefs; bounded-x0 DDIM10; replan each step",
+    "open_loop": "Same DDIM checkpoint, execute8-action chunks; zero-fill normalized observations during blackout and update RSSM posterior, with no prior-imputation branch",
+    "bc": "Reactive BC; zero-fill every normalized observation coordinate during blackout; no recurrent state",
+    "mpc": "Shared WM, deterministic latent CEM, horizon15/population256/elites32/iterations4/alpha0.1; maximize predicted sparse rewards; no penalty on success terminals and no ground-truth reward oracle"
+  },
+  "metrics": ["Task successes/N with Wilson95% interval", "Per-seed outcomes and exact-pairing verification", "CPU single-thread and GPU batch1 median/p95 inference latency, separately labeled"],
+  "latency": {"warmup_queries": 20, "measured_queries": 200, "mpc_measured_queries": 20, "scope": "Observation-to-action computation, excludes environment simulation; open-loop query and amortized per-step costs both reported"},
+  "paired_tests": [["lift", "cfm4", "bc", 20], ["lift", "ddim10", "bc", 20], ["can", "cfm4", "bc", 20], ["can", "ddim10", "bc", 20]],
+  "inference_limits": "One training seed; implementation baselines, not claimed exact reproductions of an external agent's table; no hyperparameter or horizon changes after inspecting success rates",
+  "stopping": "No success-based truncation of the grid or retraining of negative methods; engineering exceptions are fixed separately and incomplete episodes resumed; completed episode records are never overwritten"
+}

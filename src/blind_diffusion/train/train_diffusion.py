@@ -15,6 +15,7 @@ from blind_diffusion.train.train_world_model import WorldModel
 from blind_diffusion.train.beliefs import compute_pre_action_beliefs, sample_conditioning_queries
 from blind_diffusion.utils.ema import ModelEMA
 from blind_diffusion.diffusion.policy import build_action_policy
+from blind_diffusion.utils.training_state import signature, make_state, restore_state, reconcile_log
 
 
 def policy_batch_loss(diffusion, wm, batch, cfg, augment=True):
@@ -105,12 +106,27 @@ def main(cfg):
     best_epoch_loss = float("inf")
     best_epoch = None
     best_val = float("inf")
-    pbar = tqdm(total=total_steps, desc="train_diffusion", leave=False, dynamic_ncols=True)
-    for epoch in range(cfg.epochs):
+    start_epoch, final_loss = 0, float("nan")
+    best_path = os.path.join(run_dir,"checkpoints/best.pt")
+    training_signature = signature(OmegaConf.to_container(cfg,resolve=True),hdf5_path,cfg.wm_checkpoint)
+    if cfg.get("resume_checkpoint"):
+        saved = load_checkpoint(cfg.resume_checkpoint,map_location=device)
+        diffusion.load_state_dict(saved["model"])
+        ema.model.load_state_dict(saved["ema_model"])
+        state = restore_state(saved,optim,scheduler,training_signature,best_path)
+        step,start_epoch = state["step"],state["epoch"]
+        best_val,best_epoch_loss,best_epoch = state["best_val"],state["best_epoch_loss"],state["best_epoch"]
+        final_loss,ema.updates = state["final_loss"],state["ema_updates"]
+        reconcile_log(os.path.join(run_dir,"diffusion_logs.jsonl"),step,start_epoch)
+    pbar = tqdm(total=total_steps,initial=step,desc="train_diffusion",leave=False,dynamic_ncols=True)
+    for epoch in range(start_epoch,cfg.epochs):
+        if step >= total_steps:
+            break
         epoch_losses = []
         for batch in loader:
             batch = {k: v.to(device) for k, v in batch.items()}
             loss = policy_batch_loss(diffusion, wm, batch, cfg)
+            final_loss = float(loss.detach())
             epoch_losses.append(loss.item())
 
             optim.zero_grad()
@@ -127,15 +143,6 @@ def main(cfg):
             if cfg.max_train_steps is not None and step >= cfg.max_train_steps:
                 break
 
-        save_checkpoint(
-            os.path.join(run_dir, "checkpoints/last.pt"),
-            {
-                "model": diffusion.state_dict(),
-                "ema_model": ema.model.state_dict(),
-                "config": OmegaConf.to_container(cfg, resolve=True),
-                "task": OmegaConf.to_container(cfg.task, resolve=True),
-            },
-        )
         mean_epoch_loss = float(np.mean(epoch_losses)) if epoch_losses else float("inf")
         val_loss = evaluate_policy(ema.model, wm, val_loader, device, cfg)
         logger.log({"epoch": epoch, "epoch_loss": mean_epoch_loss, "val_loss": val_loss})
@@ -155,6 +162,12 @@ def main(cfg):
                     "selection": {"metric": "ema_heldout_velocity_loss" if cfg.get("policy_type") == "flow_matching" else "ema_heldout_denoising_loss", "value": best_val, "epoch": best_epoch},
                 },
             )
+        save_checkpoint(os.path.join(run_dir,"checkpoints/last.pt"),{
+            "model":diffusion.state_dict(),"ema_model":ema.model.state_dict(),
+            "config":OmegaConf.to_container(cfg,resolve=True),"split":split,
+            "training_state":make_state(optim,scheduler,training_signature,best_path,
+                step=step,epoch=epoch+1,best_val=best_val,best_epoch_loss=best_epoch_loss,
+                best_epoch=best_epoch,final_loss=final_loss,ema_updates=ema.updates)})
         if cfg.max_train_steps is not None and step >= cfg.max_train_steps:
             break
 
@@ -174,7 +187,7 @@ def main(cfg):
 
     with open(os.path.join(run_dir, "diffusion_metrics.json"), "w", encoding="utf-8") as f:
         json.dump(
-            {"final_loss": float(loss.item()), "best_val_loss": best_val, "best_epoch_loss": best_epoch_loss, "best_epoch": best_epoch},
+            {"final_loss": final_loss, "best_val_loss": best_val, "best_epoch_loss": best_epoch_loss, "best_epoch": best_epoch},
             f,
             indent=2,
         )

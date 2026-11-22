@@ -1,0 +1,95 @@
+{
+  "id": "matched_can_horizon_v2",
+  "version": 2,
+  "training_seed": 0,
+  "episodes": {
+    "can": 30
+  },
+  "max_steps": {
+    "can": 300
+  },
+  "methods": {
+    "can": [
+      "cfm4",
+      "ddim10",
+      "open_loop",
+      "bc"
+    ]
+  },
+  "blackout_durations": [
+    0,
+    5,
+    10,
+    15,
+    20
+  ],
+  "blackout_period": 20,
+  "visible_warmup": 5,
+  "success": "First task-predicate success ends the trajectory; first-success step is saved episode length for successes, null otherwise. Derive success by115,250,300 inclusively from each same trajectory.",
+  "seed_pairing": "Seeds0..29; reuse frozen v1 Can canonical simulator inputs and require identical restored full states/observations across all methods and conditions.",
+  "sampling_noise": "Fresh noise per planning step from seed 1000003*episode_seed+step+7919; shared across generative methods and blackout conditions",
+  "training": {
+    "world_model_updates": 4000,
+    "policy_epochs": 100,
+    "batch_size": 128,
+    "learning_rate": 0.0003,
+    "policy_weight_decay": 1e-05,
+    "ema_decay": 0.995,
+    "validation_draws": 4,
+    "split": "Seeded 95%/5% episode split, shared within task; train-only observation statistics; native actions",
+    "cfm": "train_flow_matching_recovery; skip_v2 width128; Gaussian OT path; prior_aug_prob0.5",
+    "ddim": "train_diffusion_recovery; same architecture, data, updates, optimizer, EMA and prior augmentation; bounded x0 objective; DDIM10",
+    "bc": "Reactive 256-wide two-hidden-layer ELU MLP; same training windows/query distribution, batch size and update count; real observations during training; EMA held-out first-action MSE selection",
+    "reuse": "Evaluation only. Reuse all selected Can WM, CFM, DDIM, and BC checkpoints from completed matched_baselines_v1; no training or new checkpoint selection."
+  },
+  "baseline_definitions": {
+    "cfm4": "RSSM posterior/prior beliefs; Euler4; replan each step; execute first of8 actions",
+    "ddim10": "RSSM posterior/prior beliefs; bounded-x0 DDIM10; replan each step",
+    "open_loop": "Same DDIM checkpoint, execute8-action chunks; zero-fill normalized observations during blackout and update RSSM posterior, with no prior-imputation branch",
+    "bc": "Reactive BC; zero-fill every normalized observation coordinate during blackout; no recurrent state"
+  },
+  "metrics": [
+    "Primary: successes/N at300 with Wilson95% CI",
+    "Secondary: successes by115 and250 from identical trajectories",
+    "Per-seed first-success times and exact paired starts",
+    "Agreement of115step prefixes with archived v1 records, reported without adaptive reruns"
+  ],
+  "paired_tests": [
+    [
+      "can",
+      "cfm4",
+      "bc",
+      20
+    ],
+    [
+      "can",
+      "ddim10",
+      "bc",
+      20
+    ]
+  ],
+  "inference_limits": "One training seed; seeds0..29 preserve our horizon comparison. This does not claim exact reproduction of the external reference using seeds1000..1029 and different checkpoints.",
+  "stopping": "No success-based truncation of the grid or retraining of negative methods; engineering exceptions are fixed separately and incomplete episodes resumed; completed episode records are never overwritten",
+  "report_horizons": [
+    115,
+    250,
+    300
+  ],
+  "primary_horizon": 300,
+  "seed_start": 0,
+  "checkpoint_sha256": {
+    "wm": "6d3ab9c53db0c96e85a312ba2ae6c947357dff6599d816930fd7385140ba508c",
+    "cfm": "412c459fa51b2575b4e0ad618fed634ab3d65b892f3731c5c3353e7590e9f827",
+    "ddim": "6663b5793018260cb46d2936746a3732a43b279f517005979e7221a2d7f651ea",
+    "bc": "5a88fab5e5a719f2ac35736fbb0ff2cac3dfbc7830aec0198acf2f0416e25a5c"
+  },
+  "parent_protocol": "matched_baselines_v1 (immutable115step Can table)",
+  "engineering_revision": 1,
+  "host_observation_calibration": {
+    "max_abs_delta": 5e-07,
+    "physics_reference": "Archived v1 restored full simulator states must remain exactly equal",
+    "sensor_reference": "Capture once on new host from unchanged canonical physical states; require two exactly repeating captures and exact equality across every method/condition. Retain v1 observation reference and audit deltas.",
+    "rationale": "First attempt stopped because cross-host derived quaternion differences were rejected, despite exact physical state restoration. No checkpoint, seed, horizon, action sampling, or success criterion changes."
+  },
+  "runtime_backend": "macOS CPU, Python3.10, Torch2.4, MuJoCo2.3.7; one Torch thread per worker, up to4 workers; all four methods on the same host."
+}
