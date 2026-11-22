@@ -1,0 +1,126 @@
+{
+  "hardware": {
+    "cpu_arch": "x86_64",
+    "torch": "2.4.0+cu124",
+    "cpu_threads": 1,
+    "gpu": "NVIDIA RTX 4000 Ada Generation"
+  },
+  "scope": {
+    "warmup_queries": 20,
+    "measured_queries": 200,
+    "mpc_measured_queries": 20,
+    "scope": "Observation-to-action computation, excludes environment simulation; open-loop query and amortized per-step costs both reported"
+  },
+  "results": {
+    "can": {
+      "cfm4": {
+        "cpu": {
+          "visible": {
+            "median_ms": 11.19443352217786,
+            "p95_ms": 11.48962579027284,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 11.14662250620313,
+            "p95_ms": 11.28354067041073,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 10.160336503759027,
+            "p95_ms": 10.220813812338747,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 10.003334027715027,
+            "p95_ms": 10.37379373447038,
+            "queries": 200
+          }
+        }
+      },
+      "ddim10": {
+        "cpu": {
+          "visible": {
+            "median_ms": 29.450704518239945,
+            "p95_ms": 30.706330275279466,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 29.560112510807812,
+            "p95_ms": 32.43501289980486,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 28.301615006057546,
+            "p95_ms": 29.566399301984347,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 28.09306449489668,
+            "p95_ms": 28.403995736152865,
+            "queries": 200
+          }
+        }
+      },
+      "open_loop": {
+        "cpu": {
+          "visible": {
+            "median_ms": 29.408580012386665,
+            "p95_ms": 30.77695580432191,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 4.083620122401044
+          },
+          "blind": {
+            "median_ms": 29.571072984253988,
+            "p95_ms": 31.167234395979904,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 3.880860371282324
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 28.517975006252527,
+            "p95_ms": 29.673630592878908,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 3.9084302479750477
+          },
+          "blind": {
+            "median_ms": 28.16089300904423,
+            "p95_ms": 28.457758543663658,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 3.8915231270948425
+          }
+        }
+      },
+      "bc": {
+        "cpu": {
+          "visible": {
+            "median_ms": 0.0883470056578517,
+            "p95_ms": 0.09774942300282419,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 0.07372497930191457,
+            "p95_ms": 0.08269349636975676,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 0.23396400501951575,
+            "p95_ms": 0.25930656993296,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 0.19486999372020364,
+            "p95_ms": 0.21622642234433442,
+            "queries": 200
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,10 @@
-# Validated Lift recovery result
+# Historical Lift recovery result
 
-The public headline is **19/20 clean and 18/20 permanently blind task successes**
+The current front page uses the larger [matched comparison](results/matched_baselines_v1.md)
+and [300-step Can extension](results/can_horizon_comparison.md). This page preserves
+the earlier, separate 20-pair recovery protocol.
+
+This earlier result is **19/20 clean and 18/20 permanently blind task successes**
 for the OT-path conditional flow policy. Counts were recomputed from downloaded
 per-episode metrics, and all 20 paired initial observation vectors were checked
 for exact equality. The curated [machine-readable summary](results/lift_flow_matching.json)
@@ -74,6 +78,6 @@ audit before inclusion.
 
 Use the [tested installation and commands](setup.md) to rerun the experiment.
 The public JSON records the initial 20-pair result; it does not generate new
-rollouts. A larger matched baseline campaign is in progress, with separate
-protocols and outcome records. No incomplete cells or external screenshot
+rollouts. The larger matched baseline campaign is complete, with separate
+protocols and outcome records linked above. No incomplete cells or external screenshot
 claims are included in the headline table.

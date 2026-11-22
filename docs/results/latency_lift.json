@@ -1,0 +1,178 @@
+{
+  "hardware": {
+    "cpu_arch": "x86_64",
+    "torch": "2.4.0+cu124",
+    "cpu_threads": 1,
+    "gpu": "NVIDIA RTX 4000 Ada Generation"
+  },
+  "scope": {
+    "warmup_queries": 20,
+    "measured_queries": 200,
+    "mpc_measured_queries": 20,
+    "scope": "Observation-to-action computation, excludes environment simulation; open-loop query and amortized per-step costs both reported"
+  },
+  "results": {
+    "lift": {
+      "cfm4": {
+        "cpu": {
+          "visible": {
+            "median_ms": 11.468957498436794,
+            "p95_ms": 11.800307780504227,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 11.394796485546976,
+            "p95_ms": 11.828335712198168,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 10.760841483715922,
+            "p95_ms": 10.900594320264645,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 10.589341021841392,
+            "p95_ms": 10.700207750778645,
+            "queries": 200
+          }
+        }
+      },
+      "cfm2": {
+        "cpu": {
+          "visible": {
+            "median_ms": 5.999707995215431,
+            "p95_ms": 6.211132765747607,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 5.89483353542164,
+            "p95_ms": 6.067733038798906,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 5.691878031939268,
+            "p95_ms": 5.814199571614154,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 5.534368508961052,
+            "p95_ms": 5.757407957571559,
+            "queries": 200
+          }
+        }
+      },
+      "ddim10": {
+        "cpu": {
+          "visible": {
+            "median_ms": 29.730855982052162,
+            "p95_ms": 30.550395435420793,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 29.8000524926465,
+            "p95_ms": 31.016615877160802,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 29.369719530222937,
+            "p95_ms": 30.08375895442441,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 29.167665517888963,
+            "p95_ms": 31.67304223461542,
+            "queries": 200
+          }
+        }
+      },
+      "open_loop": {
+        "cpu": {
+          "visible": {
+            "median_ms": 30.600654485169798,
+            "p95_ms": 33.59462301013991,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 4.062206753587816
+          },
+          "blind": {
+            "median_ms": 30.596876982599497,
+            "p95_ms": 33.47004619135986,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 3.976395004428923
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 29.530089494073763,
+            "p95_ms": 29.887105064699426,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 4.1734744954737835
+          },
+          "blind": {
+            "median_ms": 28.310210502240807,
+            "p95_ms": 29.771087659173645,
+            "queries": 200,
+            "chunk_amortized_step_median_ms": 4.052983000292443
+          }
+        }
+      },
+      "bc": {
+        "cpu": {
+          "visible": {
+            "median_ms": 0.0916290155146271,
+            "p95_ms": 0.10105449182447046,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 0.07511800504289567,
+            "p95_ms": 0.08285251096822321,
+            "queries": 200
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 0.23775699082762003,
+            "p95_ms": 0.2525140007492155,
+            "queries": 200
+          },
+          "blind": {
+            "median_ms": 0.19712949870154262,
+            "p95_ms": 0.20780254271812737,
+            "queries": 200
+          }
+        }
+      },
+      "mpc": {
+        "cpu": {
+          "visible": {
+            "median_ms": 141.41662846668623,
+            "p95_ms": 142.2279859893024,
+            "queries": 20
+          },
+          "blind": {
+            "median_ms": 141.92255950183608,
+            "p95_ms": 144.25822405028157,
+            "queries": 20
+          }
+        },
+        "cuda": {
+          "visible": {
+            "median_ms": 16.70415748958476,
+            "p95_ms": 16.89328701759223,
+            "queries": 20
+          },
+          "blind": {
+            "median_ms": 16.784164996352047,
+            "p95_ms": 17.162644802010618,
+            "queries": 20
+          }
+        }
+      }
+    }
+  }
+}
