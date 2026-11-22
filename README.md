@@ -75,16 +75,22 @@ The original 115-step benchmark is retained separately.
 
 ### Controller computation · measured batch-one latency
 
-| Task | CFM-4 GPU median / p95 | DDIM-10 GPU median / p95 |
-| --- | ---: | ---: |
-| Lift | **10.76 / 10.90 ms** | 29.37 / 30.08 ms |
-| Can | **10.16 / 10.22 ms** | 28.30 / 29.57 ms |
+| Task | Controller | CPU median / p95 | GPU median / p95 |
+| --- | --- | ---: | ---: |
+| Lift | **CFM-4** | 11.47 / 11.80 ms | 10.76 / 10.90 ms |
+| Lift | CFM-2 | 6.00 / 6.21 ms | 5.69 / 5.81 ms |
+| Lift | DDIM-10 | 29.73 / 30.55 ms | 29.37 / 30.08 ms |
+| Can | **CFM-4** | 11.19 / 11.49 ms | 10.16 / 10.22 ms |
+| Can | DDIM-10 | 29.45 / 30.71 ms | 28.30 / 29.57 ms |
 
-Visible-observation controller microbenchmark on an NVIDIA RTX 4000 Ada,
-PyTorch 2.4: 20 warmups, 200 measured queries, synchronized GPU timing,
-excluding environment simulation. DDIM/CFM median latency ratios are 2.7–2.8×
-on this hardware; these measurements are not
-end-to-end robot throughput. [Lift timing records](docs/results/latency_lift.json)
+Visible-observation controller microbenchmark: single-thread x86-64 CPU and
+NVIDIA RTX 4000 Ada GPU, PyTorch 2.4; 20 warmups and 200 measured queries,
+with synchronized GPU timing. Environment simulation is excluded. DDIM/CFM-4
+GPU median latency ratios are 2.7–2.8× on this hardware. Lift CFM-2 uses two
+model evaluations per plan and measures 5.69 ms GPU / 6.00 ms CPU median,
+with 88% permanent-blackout success in the table above. These are controller
+compute measurements, not end-to-end robot throughput.
+[Lift timing records](docs/results/latency_lift.json)
 · [Can timing records](docs/results/latency_can.json).
 
 **Read the comparison correctly.** DDIM uses bounded direct-x0 prediction.

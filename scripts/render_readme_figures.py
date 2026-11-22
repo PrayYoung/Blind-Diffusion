@@ -17,7 +17,10 @@ PURPLE, TEAL, ORANGE, GRAY = '#7245c7', '#008c95', '#df8937', '#7a8799'
 def save(fig, destination, name):
     destination.mkdir(parents=True, exist_ok=True)
     for extension in ('svg', 'png'):
-        fig.savefig(destination / f'{name}.{extension}', dpi=200, facecolor='white')
+        path = destination / f'{name}.{extension}'
+        fig.savefig(path, dpi=200, facecolor='white')
+        if extension == 'svg':
+            path.write_text('\n'.join(line.rstrip() for line in path.read_text().splitlines()) + '\n')
     plt.close(fig)
 
 
@@ -125,7 +128,9 @@ def architecture(destination):
     arrow((63, 30), (63, 27), '#2563aa')
     # Belief conditioning enters the flow field, not the initial Gaussian noise.
     arrow((36, 14.7), (53, 23), PURPLE, rad=.12)
-    text(46, 19, 'condition', 8.4, PURPLE, ha='center')
+    ax.text(47, 18.8, 'condition', fontsize=8.4, color=PURPLE,
+            ha='center', va='center', zorder=10,
+            bbox={'facecolor': 'white', 'edgecolor': 'none', 'pad': 1.5})
     box(53, 12, 20, 5.3, 'white', '#c1d6ef')
     text(63, 15.5, 'Completed 8-action plan', 9.8, weight='bold', ha='center')
     text(63, 13.4, 'Clamp endpoint to [−1, 1]', 8.8, MUTED, ha='center')
